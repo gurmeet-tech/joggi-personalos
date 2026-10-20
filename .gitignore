@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+
+# Database (SQLite)
+*.db
+*.db-journal
+data/
+!data/.gitkeep
+
+# Environment secrets — never commit
+.env
+.env.local
+.env.*.local
+
+# Prisma
+prisma/*.db
+
+# Build
+dist/
+build/
+
+# IDE
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Coverage
+coverage/

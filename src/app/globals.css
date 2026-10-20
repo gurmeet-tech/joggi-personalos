@@ -1,0 +1,186 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body {
+  background: #ffffff;
+  color: #141414;
+  font-family: Inter, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  font-feature-settings: "cv11", "ss01";
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  border-color: #f0f0f0;
+}
+
+::selection {
+  background: #141414;
+  color: #ffffff;
+}
+
+@layer components {
+  .pill {
+    @apply rounded-full;
+  }
+  .card {
+    @apply rounded-md border border-hairline-soft bg-canvas p-lg;
+  }
+  .card-soft {
+    @apply rounded-md bg-canvas-soft p-lg;
+  }
+  .input {
+    @apply w-full rounded-sm bg-field px-md py-sm text-body text-ink outline-none transition-shadow placeholder:text-faint focus:ring-2 focus:ring-ink;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-xs rounded-full px-md text-link transition-opacity disabled:cursor-not-allowed disabled:opacity-40;
+    min-height: 44px;
+  }
+  .btn-primary {
+    @apply btn bg-ink text-on-primary hover:opacity-85;
+  }
+  .btn-outline {
+    @apply btn border border-hairline bg-canvas text-ink hover:bg-canvas-soft;
+  }
+  .btn-soft {
+    @apply btn bg-canvas-soft text-ink hover:opacity-80;
+  }
+  .nav-row {
+    @apply flex w-full items-center gap-sm rounded-full px-md py-xs text-body-sm text-ink transition-colors;
+    min-height: 40px;
+  }
+  .nav-row-active {
+    @apply bg-ink text-on-primary;
+  }
+  .nav-row-idle {
+    @apply text-ink hover:bg-field;
+  }
+  .label-cap {
+    @apply text-label text-muted;
+  }
+}
+
+/* Custom scrollbar — minimal, monochrome */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #e0e0e0;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #adadad;
+}
+
+/* Focus visibility for keyboard users */
+:focus-visible {
+  outline: 2px solid #141414;
+  outline-offset: 2px;
+}
+
+/* Exam ambience player: hide video visuals, keep audio */
+.ambience-audio-only iframe,
+.ambience-audio-only video {
+  position: fixed !important;
+  bottom: -10px;
+  right: -10px;
+  width: 1px !important;
+  height: 1px !important;
+  opacity: 0.001 !important;
+  pointer-events: none !important;
+  border: 0 !important;
+}
+
+/* Paper snatching animation — invigilator takes the sheet at submission */
+@keyframes paper-snatch {
+  0% {
+    transform: translate(0, 0) rotate(0deg) scale(1);
+    opacity: 1;
+  }
+  55% {
+    transform: translate(-18vw, -8vh) rotate(-14deg) scale(0.94);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-95vw, -40vh) rotate(-32deg) scale(0.6);
+    opacity: 0;
+  }
+}
+.paper-snatch {
+  animation: paper-snatch 1.4s cubic-bezier(0.5, 0, 0.75, 0) forwards;
+}
+
+@keyframes invigilator-walk {
+  0% {
+    transform: translateX(60vw);
+  }
+  40% {
+    transform: translateX(10vw);
+  }
+  100% {
+    transform: translateX(-40vw);
+  }
+}
+.invigilator-walk {
+  animation: invigilator-walk 2.2s ease-in forwards;
+}
+
+@keyframes bell-shake {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  15% {
+    transform: rotate(14deg);
+  }
+  30% {
+    transform: rotate(-12deg);
+  }
+  45% {
+    transform: rotate(9deg);
+  }
+  60% {
+    transform: rotate(-7deg);
+  }
+  75% {
+    transform: rotate(4deg);
+  }
+  90% {
+    transform: rotate(-2deg);
+  }
+}
+.bell-shake {
+  animation: bell-shake 0.9s ease-in-out;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.fade-up {
+  animation: fade-up 0.25s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .paper-snatch,
+  .invigilator-walk,
+  .bell-shake,
+  .fade-up {
+    animation: none !important;
+  }
+}
