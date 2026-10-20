@@ -6,7 +6,6 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutGrid,
   FlaskConical,
-  BookOpen,
   CalendarRange,
   RotateCcw,
   NotebookPen,
@@ -40,7 +39,6 @@ const NAV_GROUPS: Array<{ label: string; items: Array<{ href: string; label: str
     label: "Study",
     items: [
       { href: "/exam-studio", label: "AI Exam Studio", icon: FlaskConical },
-      { href: "/syllabus", label: "Subjects & syllabus", icon: BookOpen },
       { href: "/planner", label: "Study planner", icon: CalendarRange },
       { href: "/revision", label: "Revision center", icon: RotateCcw },
       { href: "/mistakes", label: "Mistake notebook", icon: NotebookPen },

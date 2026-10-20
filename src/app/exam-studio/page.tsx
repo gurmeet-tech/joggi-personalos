@@ -268,9 +268,6 @@ export default function ExamStudioPage() {
                 </li>
               ))}
             </ul>
-            <Link href="/syllabus" className="btn-soft mt-md w-full">
-              Manage syllabus
-            </Link>
           </Card>
         </div>
       </div>

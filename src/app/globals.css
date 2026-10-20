@@ -29,7 +29,7 @@ body {
     @apply rounded-full;
   }
   .card {
-    @apply rounded-md border border-hairline-soft bg-canvas p-lg;
+    @apply rounded-md border border-hairline-soft bg-canvas p-lg shadow-card;
   }
   .card-soft {
     @apply rounded-md bg-canvas-soft p-lg;
@@ -45,7 +45,8 @@ body {
     @apply btn bg-ink text-on-primary hover:opacity-85;
   }
   .btn-outline {
-    @apply btn border border-hairline bg-canvas text-ink hover:bg-canvas-soft;
+    @apply btn border border-gray-300 bg-canvas text-ink shadow-xl hover:bg-canvas-soft;
+    font-size: 0.8125rem;
   }
   .btn-soft {
     @apply btn bg-canvas-soft text-ink hover:opacity-80;

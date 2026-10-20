@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { useApi, Card, Button, Spinner, ErrorState, Badge, useToast } from "@/components/ui";
-import { Sparkles, Send, Trash2, Mic, Volume2, VolumeX } from "lucide-react";
+import { useApi, Spinner, ErrorState, useToast } from "@/components/ui";
+import { greetingForHour, cn } from "@/lib/utils";
+import { ArrowUp, Mic, Square, Trash2, Sparkles } from "lucide-react";
 
 interface Msg {
   id: string;
@@ -10,26 +11,31 @@ interface Msg {
   content: string;
   createdAt: string;
 }
+interface Profile {
+  name: string;
+}
 
 const SUGGESTIONS = [
   "What should I study right now?",
   "Build me a 7-day plan for my weakest subject.",
   "How do I fix my biggest mistake pattern?",
-  "Draft a polite follow-up for a client who went quiet.",
-  "Explain the mark distribution in my weakest chapter area.",
+  "Draft a polite follow-up for a quiet client.",
 ];
 
 export default function AssistantPage() {
   const toast = useToast();
   const { data: history, loading, error, reload } = useApi<Msg[]>("/api/assistant");
+  const { data: profile } = useApi<Profile>("/api/profile");
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
-  const [isDemo, setIsDemo] = useState(false);
   const [listening, setListening] = useState(false);
-  const [speakReplies, setSpeakReplies] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
+
+  const firstName = (profile?.name || "Gurmeet").split(" ")[0];
+  const greeting = greetingForHour(new Date().getHours());
+  const empty = messages.length === 0;
 
   useEffect(() => {
     if (history) setMessages(history);
@@ -54,13 +60,7 @@ export default function AssistantPage() {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Assistant failed.");
-      setIsDemo(!!json.isDemo);
       setMessages((m) => [...m, { id: "a-" + Date.now(), role: "assistant", content: json.reply, createdAt: new Date().toISOString() }]);
-      if (speakReplies && typeof window !== "undefined" && window.speechSynthesis) {
-        const u = new SpeechSynthesisUtterance(json.reply);
-        u.lang = "en-IN";
-        window.speechSynthesis.speak(u);
-      }
     } catch (e) {
       toast((e as Error).message, "error");
       setMessages((m) => m.filter((x) => x.id !== optimistic.id));
@@ -91,10 +91,7 @@ export default function AssistantPage() {
     rec.lang = "en-IN";
     rec.interimResults = true;
     rec.continuous = false;
-    rec.onresult = (e: any) => {
-      const transcript = Array.from(e.results).map((r: any) => r[0].transcript).join("");
-      setInput(transcript);
-    };
+    rec.onresult = (e: any) => setInput(Array.from(e.results).map((r: any) => r[0].transcript).join(""));
     rec.onend = () => setListening(false);
     rec.onerror = () => setListening(false);
     recognitionRef.current = rec;
@@ -106,61 +103,64 @@ export default function AssistantPage() {
   if (error) return <ErrorState message={error} onRetry={reload} />;
 
   return (
-    <div className="mx-auto flex h-[calc(100vh-8rem)] max-w-3xl flex-col">
-      <div className="mb-md flex flex-wrap items-end justify-between gap-sm">
-        <div>
-          <p className="label-cap">AI companion</p>
-          <h1 className="mt-xs text-h2 text-ink">Study assistant.</h1>
-          <p className="mt-sm text-body text-muted">Grounded in your real syllabus, scores, mistakes and pipeline — not generic advice.</p>
+    <div className="mx-auto flex h-[calc(100vh-6rem)] max-w-2xl flex-col">
+      {/* Top bar */}
+      <div className="flex items-center justify-between pb-sm">
+        <div className="flex items-center gap-xs text-body-sm text-muted">
+          <Sparkles size={14} />
+          <span>Assistant</span>
         </div>
-        <div className="flex items-center gap-xs">
-          <Button variant="outline" className="!min-h-8 !text-caption" onClick={() => setSpeakReplies((s) => !s)} title="Read replies aloud">
-            {speakReplies ? <Volume2 size={14} /> : <VolumeX size={14} />}
-          </Button>
-          <Button variant="outline" className="!min-h-8 !text-caption" onClick={clearAll}>
-            <Trash2 size={14} /> Clear
-          </Button>
-        </div>
+        {!empty && (
+          <button onClick={clearAll} className="flex items-center gap-xxs rounded-full px-sm py-xs text-caption text-muted hover:bg-field hover:text-ink">
+            <Trash2 size={13} /> Clear
+          </button>
+        )}
       </div>
 
-      <Card className="flex flex-1 flex-col overflow-hidden">
-        <div ref={scrollRef} className="flex-1 overflow-y-auto pr-xs">
-          {messages.length === 0 && (
-            <div className="flex h-full flex-col items-center justify-center gap-md text-center">
-              <Sparkles size={28} className="text-muted" />
-              <p className="text-body text-ink">Ask anything about your studies, revision, English or freelance work.</p>
-              <div className="flex flex-wrap justify-center gap-xs">
-                {SUGGESTIONS.map((s) => (
-                  <button key={s} onClick={() => send(s)} className="rounded-full border border-hairline-soft px-sm py-xs text-caption text-muted hover:border-ink hover:text-ink">
-                    {s}
-                  </button>
-                ))}
-              </div>
+      {/* Stream / empty greeting */}
+      <div ref={scrollRef} className="flex-1 overflow-y-auto">
+        {empty ? (
+          <div className="flex h-full flex-col items-center justify-center px-md text-center">
+            <h1 className="text-h3 text-ink">
+              {greeting}, {firstName}.
+            </h1>
+            <p className="mt-sm max-w-md text-body text-muted">What are we working on today?</p>
+            <div className="mt-lg flex w-full max-w-lg flex-col gap-xs">
+              {SUGGESTIONS.map((s) => (
+                <button
+                  key={s}
+                  onClick={() => send(s)}
+                  className="rounded-md border border-hairline px-md py-sm text-left text-body-sm text-muted transition-colors hover:border-ink hover:text-ink"
+                >
+                  {s}
+                </button>
+              ))}
             </div>
-          )}
-          <div className="flex flex-col gap-md">
-            {messages.map((m) => (
-              <div key={m.id} className={m.role === "user" ? "flex justify-end" : "flex justify-start"}>
-                <div className={`max-w-[85%] whitespace-pre-wrap rounded-md px-md py-sm text-body-sm ${m.role === "user" ? "bg-ink text-on-primary" : "bg-canvas-soft text-ink"}`}>
-                  {m.content}
-                </div>
-              </div>
-            ))}
-            {sending && (
-              <div className="flex justify-start">
-                <div className="rounded-md bg-canvas-soft px-md py-sm text-body-sm text-muted">Thinking…</div>
-              </div>
-            )}
           </div>
-        </div>
+        ) : (
+          <div className="flex flex-col gap-lg py-md">
+            {messages.map((m) =>
+              m.role === "user" ? (
+                <div key={m.id} className="flex justify-end">
+                  <div className="max-w-[85%] whitespace-pre-wrap rounded-md bg-canvas-soft px-md py-sm text-body-sm text-ink">{m.content}</div>
+                </div>
+              ) : (
+                <div key={m.id} className="whitespace-pre-wrap text-body-sm leading-relaxed text-ink">{m.content}</div>
+              )
+            )}
+            {sending && <div className="text-body-sm text-faint">Thinking…</div>}
+          </div>
+        )}
+      </div>
 
-        {listening && <p className="mt-xs text-caption text-ink">Listening… speak now, then press stop.</p>}
-
-        <div className="mt-md flex items-end gap-xs border-t border-hairline-soft pt-md">
+      {/* Composer */}
+      <div className="pt-md">
+        {listening && <p className="mb-xs text-caption text-muted">Listening… speak now.</p>}
+        <div className="flex items-end gap-xs rounded-md border border-hairline bg-canvas px-sm py-xs shadow-overlay focus-within:border-ink">
           <textarea
-            className="input min-h-11 flex-1 resize-none"
+            className="max-h-40 flex-1 resize-none bg-transparent py-xs text-body-sm text-ink outline-none placeholder:text-faint"
             rows={1}
-            placeholder="Ask your assistant…"
+            placeholder={`Message your assistant…`}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {
@@ -170,19 +170,23 @@ export default function AssistantPage() {
               }
             }}
           />
-          <Button variant="outline" onClick={toggleVoice} className={listening ? "!border-ink !text-ink" : ""} aria-label="Voice input">
-            <Mic size={16} />
-          </Button>
-          <Button onClick={() => send()} disabled={sending || !input.trim()} aria-label="Send">
-            <Send size={16} />
-          </Button>
+          <button
+            onClick={toggleVoice}
+            aria-label="Voice input"
+            className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted transition-colors hover:bg-field hover:text-ink", listening && "text-accent")}
+          >
+            {listening ? <Square size={15} /> : <Mic size={16} />}
+          </button>
+          <button
+            onClick={() => send()}
+            disabled={sending || !input.trim()}
+            aria-label="Send"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-ink text-on-primary transition-opacity hover:opacity-85 disabled:opacity-30"
+          >
+            <ArrowUp size={16} />
+          </button>
         </div>
-        {isDemo && (
-          <p className="mt-xs text-caption text-muted">
-            <Badge tone="neutral">Demo mode</Badge> Running without an AI key — responses use your real data with rules-based reasoning. Add AI_API_KEY for full natural language.
-          </p>
-        )}
-      </Card>
+      </div>
     </div>
   );
 }
