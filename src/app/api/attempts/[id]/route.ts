@@ -3,6 +3,8 @@ import { db } from "@/lib/db";
 import { parseJSON } from "@/lib/utils";
 import { buildEvaluationResult } from "@/lib/ai";
 
+export const maxDuration = 60;
+
 function serializeAttempt(attempt: NonNullable<Awaited<ReturnType<typeof loadAttempt>>>, revealAnswers: boolean) {
   const questions = attempt.paper.questions.map((q) => ({
     id: q.id,

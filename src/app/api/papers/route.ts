@@ -4,6 +4,8 @@ import { generatePaper, aiStatus } from "@/lib/ai";
 import { z } from "zod";
 import type { QuestionType } from "@/lib/types";
 
+export const maxDuration = 60;
+
 const requestSchema = z.object({
   subjectId: z.string().optional(),
   subject: z.string().min(1).max(60),

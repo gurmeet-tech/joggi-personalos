@@ -4,6 +4,8 @@ import { z } from "zod";
 import { generateStudyPlan } from "@/lib/ai";
 import { parseJSON, todayISO, dateOffsetISO } from "@/lib/utils";
 
+export const maxDuration = 60;
+
 export async function GET(req: NextRequest) {
   const from = req.nextUrl.searchParams.get("from") || todayISO();
   const to = req.nextUrl.searchParams.get("to") || dateOffsetISO(13);

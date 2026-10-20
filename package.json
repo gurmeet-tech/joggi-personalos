@@ -3,10 +3,14 @@
   "version": "1.0.0",
   "private": true,
   "description": "MY OS — Class 12 Personal Operating System: AI exam simulator, study planner, English lab, freelance CRM, and self-improvement.",
+  "engines": {
+    "node": ">=18.18.0"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
     "start": "next start",
+    "postinstall": "prisma generate",
     "lint": "next lint",
     "db:push": "prisma db push",
     "db:generate": "prisma generate",

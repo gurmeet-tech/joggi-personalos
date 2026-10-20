@@ -4,6 +4,8 @@ import { z } from "zod";
 import { generateEnglishFeedback } from "@/lib/ai";
 import { parseJSON, streakFromDates } from "@/lib/utils";
 
+export const maxDuration = 60;
+
 export async function GET() {
   const sessions = await db.englishSession.findMany({ orderBy: { createdAt: "desc" }, take: 100 });
   const streak = streakFromDates(sessions.map((s) => s.createdAt.toISOString().slice(0, 10)));

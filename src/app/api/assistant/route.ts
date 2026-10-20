@@ -4,6 +4,8 @@ import { z } from "zod";
 import { assistantReply, type AssistantContext } from "@/lib/ai";
 import { parseJSON, todayISO, streakFromDates } from "@/lib/utils";
 
+export const maxDuration = 60;
+
 export async function GET() {
   const messages = await db.assistantMessage.findMany({ orderBy: { createdAt: "asc" }, take: 100 });
   return NextResponse.json(messages);
