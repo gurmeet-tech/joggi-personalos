@@ -306,3 +306,37 @@ model AssistantMessage {
   content   String
   createdAt DateTime @default(now())
 }
+
+model WinterArc {
+  id             String          @id @default("default")
+  active         Boolean         @default(false)
+  title          String          @default("Winter Arc")
+  startDate      String          // YYYY-MM-DD
+  endDate        String          // YYYY-MM-DD
+  mission        String          @default("")
+  commitments    String          @default("[]") // JSON array of strings
+  nonNegotiables String          @default("[]") // JSON array of strings
+  rules          String          @default("[]") // JSON array of strings
+  dailyTargetMin Int             @default(600)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  days           WinterArcDay[]
+}
+
+model WinterArcDay {
+  id          String    @id @default(cuid())
+  arcId       String    @default("default")
+  arc         WinterArc @relation(fields: [arcId], references: [id], onDelete: Cascade)
+  date        String    // YYYY-MM-DD
+  lockedIn    Boolean   @default(false)
+  focusMinutes Int      @default(0)
+  noPhone     Boolean   @default(false)
+  trained     Boolean   @default(false)
+  noJunk      Boolean   @default(false)
+  sleptEarly  Boolean   @default(false)
+  reflection  String    @default("")
+  score       Int       @default(0) // 0..100 computed
+  createdAt   DateTime  @default(now())
+
+  @@unique([arcId, date])
+}

@@ -1,0 +1,343 @@
+generator client {
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Profile {
+  id                 String   @id @default("default")
+  name               String   @default("Student")
+  board              String   @default("CBSE")
+  session            String   @default("2025-26")
+  class              String   @default("12")
+  targetMarks        Int?
+  dailyStudyHours    Float    @default(4)
+  englishAccent      String   @default("Indian")
+  ambienceVideoUrl   String   @default("https://youtu.be/CYcn9O8hkz8")
+  ambienceVolume     Float    @default(0.4)
+  strictMode         Boolean  @default(true)
+  defaultDurationMin Int      @default(180)
+  onboarded          Boolean  @default(false)
+  schoolSchedule     String?
+  examDates          String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model Subject {
+  id        String    @id @default(cuid())
+  name      String
+  order     Int       @default(0)
+  target    Int?
+  createdAt DateTime  @default(now())
+  chapters  Chapter[]
+  papers    ExamPaper[]
+}
+
+model Chapter {
+  id               String    @id @default(cuid())
+  subjectId        String
+  subject          Subject   @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  name             String
+  order            Int       @default(0)
+  status           String    @default("NOT_STARTED") // NOT_STARTED | IN_PROGRESS | STUDIED | REVISION_REQUIRED | TEST_PENDING | MASTERED
+  confidence       Int       @default(1) // 1..5
+  completion       Int       @default(0) // 0..100
+  lastStudiedAt    DateTime?
+  lastTestScore    Float?
+  attempts         Int       @default(0)
+  weakConcepts     String    @default("[]") // JSON array
+  nextRevisionAt   DateTime?
+  topics           Topic[]
+  studySessions    StudySession[]
+  mistakes         Mistake[]
+}
+
+model Topic {
+  id        String  @id @default(cuid())
+  chapterId String
+  chapter   Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  name      String
+  mastered  Boolean @default(false)
+}
+
+model ExamPaper {
+  id              String        @id @default(cuid())
+  subjectId       String?
+  subject         Subject?      @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  title           String
+  mode            String // CHAPTER | HALF | FULL | CUSTOM | WEAK | REVISION | PREVIOUS_YEAR
+  chapterIds      String        @default("[]") // JSON array
+  difficulty      String        @default("mixed")
+  questionTypes   String        @default("[]") // JSON array
+  language        String        @default("English")
+  durationMinutes Int           @default(180)
+  totalMarks      Int           @default(80)
+  markingScheme   String        @default("{}") // JSON
+  instructions    String        @default("[]") // JSON array of strings
+  isDemo          Boolean       @default(false)
+  createdAt       DateTime      @default(now())
+  questions       Question[]
+  attempts        ExamAttempt[]
+}
+
+model Question {
+  id        String       @id @default(cuid())
+  paperId   String
+  paper     ExamPaper    @relation(fields: [paperId], references: [id], onDelete: Cascade)
+  number    Int
+  type      String // MCQ | TRUE_FALSE | ASSERTION_REASON | MATCHING | SHORT | LONG | CASE | NUMERICAL | DERIVATION
+  text      String
+  options   String       @default("[]") // JSON array of {id,text}
+  marks     Int          @default(1)
+  topics    String       @default("[]") // JSON array
+  difficulty String      @default("moderate")
+  answer    String       @default("") // correct answer / key
+  solution  String       @default("")
+  scheme    String       @default("[]") // JSON array of marking points
+  choiceGroup Int?       // questions sharing a choiceGroup form an internal-choice pair
+  attempts  ExamAttemptAnswer[]
+}
+
+model ExamAttempt {
+  id              String                @id @default(cuid())
+  paperId         String
+  paper           ExamPaper             @relation(fields: [paperId], references: [id], onDelete: Cascade)
+  startedAt       DateTime?
+  submittedAt     DateTime?
+  durationMinutes Int                   @default(180)
+  strictMode      Boolean               @default(true)
+  status          String                @default("NOT_STARTED") // NOT_STARTED | IN_PROGRESS | SUBMITTED | EVALUATED
+  answers         ExamAttemptAnswer[]
+  markedForReview String                @default("[]") // JSON array of question ids
+  visited         String                @default("[]") // JSON array of question ids
+  timePerQuestion String                @default("{}") // JSON {questionId: seconds}
+  autoSubmitted   Boolean               @default(false)
+  score           Float?
+  maxScore        Int                   @default(0)
+  subjectiveScore Float?
+  objectiveScore  Float?
+  evaluation      String                @default("{}") // JSON per-question breakdown
+  notes           String?
+  createdAt       DateTime              @default(now())
+}
+
+model ExamAttemptAnswer {
+  id           String      @id @default(cuid())
+  attemptId    String
+  attempt      ExamAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  questionId   String
+  question     Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  response     String      @default("")
+  isCorrect    Boolean?
+  awardedMarks Float?
+  aiComment    String?
+  savedAt      DateTime    @default(now())
+
+  @@unique([attemptId, questionId])
+}
+
+model StudyPlan {
+  id            String          @id @default(cuid())
+  date          String          // YYYY-MM-DD
+  items         String          @default("[]") // JSON array of plan items
+  plannedMinutes Int            @default(0)
+  actualMinutes Int             @default(0)
+  createdAt     DateTime        @default(now())
+  sessions      StudySession[]
+}
+
+model StudySession {
+  id             String     @id @default(cuid())
+  planId         String?
+  plan           StudyPlan? @relation(fields: [planId], references: [id], onDelete: SetNull)
+  date           String
+  subjectId      String?
+  chapterId      String?
+  chapter        Chapter?   @relation(fields: [chapterId], references: [id], onDelete: SetNull)
+  type           String     @default("LEARN") // LEARN | PRACTICE | REVISION | MOCK | ENGLISH
+  plannedMinutes Int        @default(60)
+  actualMinutes  Int?
+  completed      Boolean    @default(false)
+  title          String     @default("")
+  notes          String?
+  createdAt      DateTime   @default(now())
+}
+
+model Task {
+  id           String   @id @default(cuid())
+  title        String
+  description  String?
+  category     String   @default("PERSONAL") // ACADEMICS | ENGLISH | FREELANCE | PERSONAL | HEALTH | ADMIN | OTHER
+  priority     String   @default("MEDIUM") // LOW | MEDIUM | HIGH | URGENT
+  status       String   @default("TODO") // TODO | IN_PROGRESS | DONE | SKIPPED
+  dueAt        String?
+  reminderAt   String?
+  recurring    String? // JSON {freq, interval, byDay}
+  tags         String   @default("[]")
+  parentTaskId String?
+  order        Int      @default(0)
+  completedAt  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Habit {
+  id            String      @id @default(cuid())
+  name          String
+  category      String      @default("PERSONAL")
+  targetPerWeek Int         @default(7)
+  createdAt     DateTime    @default(now())
+  logs          HabitLog[]
+}
+
+model HabitLog {
+  id      String   @id @default(cuid())
+  habitId String
+  habit   Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  date    String
+  done    Boolean  @default(false)
+  note    String?
+
+  @@unique([habitId, date])
+}
+
+model Goal {
+  id           String   @id @default(cuid())
+  title        String
+  description  String?
+  type         String   @default("SHORT_TERM") // SHORT_TERM | MONTHLY | LONG_TERM
+  category     String   @default("PERSONAL")
+  targetValue  Float?
+  currentValue Float    @default(0)
+  unit         String?
+  deadline     String?
+  status       String   @default("ACTIVE") // ACTIVE | COMPLETED | ABANDONED
+  milestones   String   @default("[]")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Mistake {
+  id              String    @id @default(cuid())
+  attemptId       String?
+  questionId      String?
+  subjectId       String?
+  chapterId       String?
+  chapter         Chapter?  @relation(fields: [chapterId], references: [id], onDelete: SetNull)
+  question        String
+  myAnswer        String    @default("")
+  correctAnswer   String    @default("")
+  reasoning       String    @default("")
+  category        String    @default("CONCEPT_GAP") // CONCEPT_GAP | SILLY_MISTAKE | TIME_PRESSURE | NOT_STUDIED | FORGOTTEN | CALCULATION
+  nextReviewAt    String
+  reviewCount     Int       @default(0)
+  lastReviewedAt  String?
+  mastered        Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+}
+
+model RevisionCard {
+  id            String   @id @default(cuid())
+  chapterId     String?
+  subjectId     String?
+  front         String
+  back          String
+  source        String   @default("MANUAL") // AUTO | MANUAL
+  nextReviewAt  String
+  ease          Float    @default(2.5)
+  interval      Int      @default(0)
+  reviews       Int      @default(0)
+  createdAt     DateTime @default(now())
+}
+
+model EnglishSession {
+  id           String   @id @default(cuid())
+  type         String   @default("PROMPT") // PROMPT | INTERVIEW | CONVERSATION | PRESENTATION | PRONUNCIATION | ROLEPLAY
+  topic        String
+  transcript   String?
+  durationSec  Int      @default(0)
+  metrics      String   @default("{}") // JSON
+  feedback     String   @default("{}")
+  corrected    String   @default("[]")
+  exercises    String   @default("[]")
+  targetAccent String   @default("Indian")
+  isDemo       Boolean  @default(false)
+  createdAt    DateTime @default(now())
+}
+
+model FreelanceLead {
+  id               String   @id @default(cuid())
+  name             String
+  company          String?
+  contactEmail     String?
+  contactPhone     String?
+  source           String?
+  service          String
+  estimatedValue   Float?
+  status           String   @default("LEAD") // LEAD | CONTACTED | REPLIED | QUALIFIED | PROPOSAL_SENT | NEGOTIATION | WON | LOST
+  proposalStatus   String?
+  outreachAt       String?
+  lastFollowUpAt   String?
+  nextFollowUpAt   String?
+  lostReason       String?
+  nextAction       String?
+  notes            String?
+  messages         String   @default("[]") // JSON array of {role, content, createdAt}
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model JournalEntry {
+  id        String   @id @default(cuid())
+  date      String
+  content   String
+  mood      Int?
+  tags      String   @default("[]")
+  createdAt DateTime @default(now())
+}
+
+model AssistantMessage {
+  id        String   @id @default(cuid())
+  role      String // user | assistant
+  content   String
+  createdAt DateTime @default(now())
+}
+
+model WinterArc {
+  id             String          @id @default("default")
+  active         Boolean         @default(false)
+  title          String          @default("Winter Arc")
+  startDate      String          // YYYY-MM-DD
+  endDate        String          // YYYY-MM-DD
+  mission        String          @default("")
+  commitments    String          @default("[]") // JSON array of strings
+  nonNegotiables String          @default("[]") // JSON array of strings
+  rules          String          @default("[]") // JSON array of strings
+  dailyTargetMin Int             @default(600)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  days           WinterArcDay[]
+}
+
+model WinterArcDay {
+  id          String    @id @default(cuid())
+  arcId       String    @default("default")
+  arc         WinterArc @relation(fields: [arcId], references: [id], onDelete: Cascade)
+  date        String    // YYYY-MM-DD
+  lockedIn    Boolean   @default(false)
+  focusMinutes Int      @default(0)
+  noPhone     Boolean   @default(false)
+  trained     Boolean   @default(false)
+  noJunk      Boolean   @default(false)
+  sleptEarly  Boolean   @default(false)
+  reflection  String    @default("")
+  score       Int       @default(0) // 0..100 computed
+  createdAt   DateTime  @default(now())
+
+  @@unique([arcId, date])
+}

@@ -40,3 +40,7 @@ npm-debug.log*
 
 # Coverage
 coverage/
+
+# Neon agent skills / MCP local files
+.agents/
+skills-lock.json

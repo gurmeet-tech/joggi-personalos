@@ -15,6 +15,7 @@ import {
   ListTodo,
   Target,
   BarChart3,
+  Snowflake,
   Sparkles,
   Settings,
   Search,
@@ -57,6 +58,7 @@ const NAV_GROUPS: Array<{ label: string; items: Array<{ href: string; label: str
     items: [
       { href: "/tasks", label: "Tasks & calendar", icon: ListTodo },
       { href: "/habits", label: "Habits & goals", icon: Target },
+      { href: "/winter-arc", label: "Winter Arc", icon: Snowflake },
       { href: "/analytics", label: "Analytics", icon: BarChart3 },
     ],
   },

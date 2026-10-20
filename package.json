@@ -8,14 +8,14 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build",
+    "build": "node scripts/prisma-schema.mjs generate && node scripts/prisma-schema.mjs db push --skip-generate && next build",
     "start": "next start",
-    "postinstall": "prisma generate",
+    "postinstall": "node scripts/prisma-schema.mjs generate",
     "lint": "next lint",
-    "db:push": "prisma db push",
-    "db:generate": "prisma generate",
-    "db:studio": "prisma studio",
-    "setup": "prisma generate && prisma db push",
+    "db:push": "node scripts/prisma-schema.mjs db push",
+    "db:generate": "node scripts/prisma-schema.mjs generate",
+    "db:studio": "node scripts/prisma-schema.mjs studio",
+    "setup": "node scripts/prisma-schema.mjs generate && node scripts/prisma-schema.mjs db push",
     "test": "node --test \"tests/**/*.test.mjs\""
   },
   "dependencies": {
