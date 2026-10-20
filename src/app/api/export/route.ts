@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const [profile, subjects, chapters, papers, attempts, tasks, habits, goals, mistakes, cards, english, leads, journal, plans, sessions] =
     await Promise.all([

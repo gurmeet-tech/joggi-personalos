@@ -3,6 +3,8 @@ import { db } from "@/lib/db";
 import { parseJSON, todayISO, dateOffsetISO, pct } from "@/lib/utils";
 import { generateStudyPlan } from "@/lib/ai";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const today = todayISO();
   const [profile, subjects, tasks, habits, habitLogs, plans, sessions, attempts, revisionCards, chapters, leads, englishSessions, mistakes] =

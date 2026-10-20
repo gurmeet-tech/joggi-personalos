@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { z } from "zod";
 
+export const dynamic = "force-dynamic";
+
 const profileSchema = z.object({
   name: z.string().min(1).max(80).optional(),
   board: z.string().max(40).optional(),
