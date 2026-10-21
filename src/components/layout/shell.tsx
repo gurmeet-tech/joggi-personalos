@@ -148,6 +148,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const isExam = pathname.startsWith("/exam/active");
+  const isAssistant = pathname.startsWith("/assistant");
 
   useEffect(() => {
     fetch("/api/profile")
@@ -243,7 +244,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       <div className="lg:pl-[17rem]">
         {/* Top bar */}
-        <header className="sticky top-0 z-20 border-b border-hairline-soft bg-canvas/95 backdrop-blur">
+        <header className={cn("sticky top-0 z-20 border-b border-hairline-soft bg-canvas/95 backdrop-blur", isAssistant && "hidden")}>
           <div className="flex items-center gap-sm px-md py-sm lg:px-xl">
             <button className="rounded-full p-xs text-ink hover:bg-canvas-soft lg:hidden" onClick={() => setMobileOpen(true)} aria-label="Open menu">
               <Menu size={20} />
@@ -341,7 +342,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        <main className="px-md py-lg lg:px-xl">{children}</main>
+        <main className={cn("px-md lg:px-xl", isAssistant ? "py-md" : "py-lg")}>{children}</main>
       </div>
 
       {/* Mobile bottom nav */}
@@ -349,11 +350,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <div className="flex items-stretch justify-around py-xs">
           {[
             { href: "/dashboard", label: "Home", icon: LayoutGrid },
-            { href: "/exam-studio", label: "Exams", icon: FlaskConical },
-            { href: "/assistant", label: "AI", icon: Sparkles },
-            { href: "/tasks", label: "Tasks", icon: ListTodo },
-            { href: "/english", label: "Speak", icon: Mic },
-            { href: "/analytics", label: "Stats", icon: BarChart3 },
+            { href: "/assistant", label: "AI assistant", icon: Sparkles },
           ].map((i) => {
             const active = pathname === i.href || (i.href !== "/dashboard" && pathname.startsWith(i.href));
             const Icon = i.icon;

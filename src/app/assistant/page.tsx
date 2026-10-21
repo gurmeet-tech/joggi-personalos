@@ -211,7 +211,7 @@ export default function AssistantPage() {
 
   return (
     <>
-      <div className="mx-auto flex h-[calc(100dvh-11rem)] max-w-2xl flex-col lg:h-[calc(100dvh-9rem)]">
+      <div className="mx-auto flex h-[calc(100dvh-7rem)] max-w-2xl flex-col lg:h-[calc(100dvh-3.5rem)]">
         {/* Header */}
         <header className="flex items-center justify-between pb-xs">
           <div className="flex items-center gap-xs text-body-sm text-muted">
