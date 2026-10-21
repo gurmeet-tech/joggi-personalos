@@ -142,17 +142,22 @@ function QuickAdd({ onClose }: { onClose: () => void }) {
 }
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [desktopNavOpen, setDesktopNavOpen] = useState(true);
+  const [desktopNavOpen, setDesktopNavOpen] = useState(() => !pathname.startsWith("/assistant"));
   const [quickOpen, setQuickOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [profile, setProfile] = useState<{ name: string; onboarded: boolean }>({ name: "Student", onboarded: false });
   const [dueCount, setDueCount] = useState(0);
   const [todo, setTodo] = useState<Array<{ kind: string; label: string; href: string; taskId?: string }>>([]);
-  const pathname = usePathname();
   const router = useRouter();
   const isExam = pathname.startsWith("/exam/active");
   const isAssistant = pathname.startsWith("/assistant");
+
+  // The assistant is a focused workspace: keep the main sidebar out of the way until asked for.
+  useEffect(() => {
+    if (isAssistant) setDesktopNavOpen(false);
+  }, [isAssistant]);
 
   useEffect(() => {
     fetch("/api/profile")
