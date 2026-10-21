@@ -11,18 +11,9 @@ import {
   MoreHorizontal,
   Search,
   X,
-  ArrowUp,
-  Square,
-  ClipboardPaste,
-  Mic,
 } from "lucide-react";
-import {
-  PromptInput,
-  PromptInputTextarea,
-  PromptInputActions,
-  PromptInputAction,
-} from "@/components/prompt-kit/prompt-input";
-import { PromptSuggestion } from "@/components/prompt-kit/prompt-suggestion";
+import { PromptSuggestion } from "@/components/ui/prompt-suggestion";
+import AssistantPromptBar from "@/components/assistant-prompt-bar";
 import LatticeLoader from "@/components/reactbits/LatticeLoader";
 
 interface Msg {
@@ -411,51 +402,15 @@ export default function AssistantPage() {
   };
 
   const composer = (
-    <PromptInput
-      className="assistant-prompt rounded-3xl border border-gray-200 bg-white p-sm shadow-xl dark:border-white/10 dark:bg-[#1b1b1b]"
+    <AssistantPromptBar
       value={input}
-      onValueChange={setInput}
+      onChange={setInput}
       onSubmit={submit}
-      maxHeight={160}
-      isLoading={sending}
-    >
-      <PromptInputTextarea placeholder="Ask anything…" className="px-xs" />
-      <PromptInputActions className="justify-between px-xs pt-xs">
-        <div className="flex items-center gap-xxs">
-          <PromptInputAction tooltip="Paste from clipboard">
-            <button
-              type="button"
-              onClick={() => void handlePaste()}
-              className="rounded-full p-xs text-muted transition-colors hover:bg-field hover:text-ink"
-              aria-label="Paste from clipboard"
-            >
-              <ClipboardPaste size={15} />
-            </button>
-          </PromptInputAction>
-          <PromptInputAction tooltip="Dictate">
-            <button
-              type="button"
-              onClick={handleDictate}
-              className="rounded-full p-xs text-muted transition-colors hover:bg-field hover:text-ink"
-              aria-label="Dictate"
-            >
-              <Mic size={15} />
-            </button>
-          </PromptInputAction>
-        </div>
-        <PromptInputAction tooltip={sending ? "Stop" : "Send"}>
-          <button
-            type="button"
-            onClick={sending ? () => abortRef.current?.abort() : submit}
-            disabled={!sending && !input.trim()}
-            className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-ink text-on-primary transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
-            aria-label={sending ? "Stop" : "Send"}
-          >
-            {sending ? <Square size={12} fill="currentColor" /> : <ArrowUp size={16} />}
-          </button>
-        </PromptInputAction>
-      </PromptInputActions>
-    </PromptInput>
+      onStop={() => abortRef.current?.abort()}
+      onPaste={() => void handlePaste()}
+      onDictate={handleDictate}
+      sending={sending}
+    />
   );
 
   return (

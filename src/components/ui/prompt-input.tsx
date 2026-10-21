@@ -195,16 +195,33 @@ function PromptInputAction({
   tooltip,
   children,
   className,
-  side: _side,
+  side = "top",
   ...props
 }: PromptInputActionProps) {
+  const position =
+    side === "bottom"
+      ? "top-[calc(100%+8px)] left-1/2 -translate-x-1/2"
+      : side === "left"
+        ? "right-[calc(100%+8px)] top-1/2 -translate-y-1/2"
+        : side === "right"
+          ? "left-[calc(100%+8px)] top-1/2 -translate-y-1/2"
+          : "bottom-[calc(100%+8px)] left-1/2 -translate-x-1/2"
+
   return (
     <span
-      title={typeof tooltip === "string" ? tooltip : undefined}
-      className={cn("inline-flex", className)}
+      className={cn("group/action relative inline-flex", className)}
       {...props}
     >
       {children}
+      <span
+        role="tooltip"
+        className={cn(
+          "pointer-events-none absolute z-50 whitespace-nowrap rounded-md bg-ink px-xs py-xxs text-[10px] font-medium text-on-primary opacity-0 shadow-overlay transition-opacity duration-150 group-hover/action:opacity-100 group-focus-within/action:opacity-100",
+          position
+        )}
+      >
+        {tooltip}
+      </span>
     </span>
   )
 }
