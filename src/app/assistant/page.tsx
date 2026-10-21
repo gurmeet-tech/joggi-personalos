@@ -218,7 +218,6 @@ export default function AssistantPage() {
   const [sending, setSending] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const recognitionRef = useRef<any>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   const active = threads.find((t) => t.id === activeId);
@@ -342,53 +341,11 @@ export default function AssistantPage() {
     closeOnMobile();
   }
 
-  function dictate(): Promise<string> {
-    return new Promise((resolve) => {
-      const SR =
-        (typeof window !== "undefined" &&
-          ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition)) ||
-        null;
-      if (!SR) {
-        toast("Voice input is not supported in this browser. You can type instead.", "error");
-        resolve("");
-        return;
-      }
-      const rec = new SR();
-      recognitionRef.current = rec;
-      rec.lang = "en-IN";
-      rec.interimResults = false;
-      rec.continuous = false;
-      rec.onresult = (e: any) => resolve(Array.from(e.results).map((r: any) => r[0].transcript).join(" "));
-      rec.onerror = () => resolve("");
-      rec.onend = () => resolve("");
-      rec.start();
-    });
-  }
-
-  async function handlePaste() {
-    try {
-      const text = await navigator.clipboard.readText();
-      if (!text.trim()) {
-        toast("Your clipboard is empty.", "info");
-        return;
-      }
-      setInput((v) => (v ? `${v} ${text.trim()}` : text.trim()));
-    } catch {
-      toast("Clipboard access was blocked. Use Ctrl/Cmd + V instead.", "error");
-    }
-  }
-
   function submit() {
     const text = input.trim();
     if (!text || sending) return;
     setInput("");
     void send(text);
-  }
-
-  function handleDictate() {
-    void dictate().then((text) => {
-      if (text) setInput((v) => (v ? `${v} ${text}` : text));
-    });
   }
 
   const panelProps = {
@@ -406,8 +363,6 @@ export default function AssistantPage() {
       onChange={setInput}
       onSubmit={submit}
       onStop={() => abortRef.current?.abort()}
-      onPaste={() => void handlePaste()}
-      onDictate={handleDictate}
       sending={sending}
     />
   );
@@ -504,7 +459,7 @@ export default function AssistantPage() {
 
         {/* Floating composer — messages scroll underneath it */}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-canvas via-canvas to-transparent pt-xl">
-          <div className="pointer-events-auto mx-auto w-full max-w-2xl">{composer}</div>
+          <div className="pointer-events-auto mx-auto w-full max-w-2xl px-[30px]">{composer}</div>
         </div>
       </section>
     </div>
