@@ -11,8 +11,18 @@ import {
   MoreHorizontal,
   Search,
   X,
+  ArrowUp,
+  Square,
+  Paperclip,
+  Mic,
 } from "lucide-react";
-import PromptBar from "@/components/reactbits/PromptBar";
+import {
+  PromptInput,
+  PromptInputTextarea,
+  PromptInputActions,
+  PromptInputAction,
+} from "@/components/prompt-kit/prompt-input";
+import { PromptSuggestion } from "@/components/prompt-kit/prompt-suggestion";
 import LatticeLoader from "@/components/reactbits/LatticeLoader";
 
 interface Msg {
@@ -204,6 +214,7 @@ export default function AssistantPage() {
   const { data: profile } = useApi<Profile>("/api/profile");
   const [threads, setThreads] = useState<Thread[]>([]);
   const [activeId, setActiveId] = useState("");
+  const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -360,6 +371,19 @@ export default function AssistantPage() {
     return "notes.txt";
   }
 
+  function submit() {
+    const text = input.trim();
+    if (!text || sending) return;
+    setInput("");
+    void send(text);
+  }
+
+  function handleDictate() {
+    void dictate().then((text) => {
+      if (text) setInput((v) => (v ? `${v} ${text}` : text));
+    });
+  }
+
   const panelProps = {
     threads,
     activeId,
@@ -420,13 +444,9 @@ export default function AssistantPage() {
               <p className="mt-xxs text-body-sm text-muted">Ask anything about your studies.</p>
               <div className="mt-md flex flex-wrap justify-center gap-xs">
                 {SUGGESTIONS.map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => send(s)}
-                    className="rounded-full border border-hairline px-sm py-xxs text-caption text-muted transition-colors hover:border-ink hover:text-ink"
-                  >
+                  <PromptSuggestion key={s} onClick={() => setInput(s)}>
                     {s}
-                  </button>
+                  </PromptSuggestion>
                 ))}
               </div>
             </div>
@@ -462,33 +482,51 @@ export default function AssistantPage() {
 
         {/* Composer — sits above the mobile bottom nav, inside the chat column */}
         <div className="shrink-0 pt-sm">
-          <PromptBar
-            placeholder="Ask anything…"
-            busy={sending}
-            width={768}
-            radius={18}
-            maxRows={4}
-            className="assistant-prompt rounded-[18px] border border-gray-200 bg-white shadow-xl"
-            background="#ffffff"
-            menuBackground="#ffffff"
-            color="#141414"
-            sparkColor="#141414"
-            sources={[
-              { key: "tasks", name: "Tasks", description: "Your open tasks and to-dos" },
-              { key: "mistakes", name: "Mistakes", description: "Your mistake notebook" },
-              { key: "revisions", name: "Revisions", description: "Chapters due for revision" },
-            ]}
-            commands={[
-              { key: "plan", name: "plan", description: "Build a study plan" },
-              { key: "review", name: "review", description: "Review weak chapters" },
-            ]}
-            models={[]}
-            efforts={[]}
-            onSend={(text) => send(text)}
-            onStop={() => abortRef.current?.abort()}
-            onAttach={attach}
-            onDictate={dictate}
-          />
+          <PromptInput
+            className="assistant-prompt rounded-3xl border border-gray-200 bg-white p-2 shadow-xl"
+            value={input}
+            onValueChange={setInput}
+            onSubmit={submit}
+            maxHeight={160}
+            isLoading={sending}
+          >
+            <PromptInputTextarea placeholder="Ask anything…" />
+            <PromptInputActions className="justify-between px-xs">
+              <div className="flex items-center gap-xxs">
+                <PromptInputAction tooltip="Attach file">
+                  <button
+                    type="button"
+                    onClick={() => void attach()}
+                    className="rounded-full p-xs text-muted transition-colors hover:bg-field hover:text-ink"
+                    aria-label="Attach file"
+                  >
+                    <Paperclip size={15} />
+                  </button>
+                </PromptInputAction>
+                <PromptInputAction tooltip="Dictate">
+                  <button
+                    type="button"
+                    onClick={handleDictate}
+                    className="rounded-full p-xs text-muted transition-colors hover:bg-field hover:text-ink"
+                    aria-label="Dictate"
+                  >
+                    <Mic size={15} />
+                  </button>
+                </PromptInputAction>
+              </div>
+              <PromptInputAction tooltip={sending ? "Stop" : "Send"}>
+                <button
+                  type="button"
+                  onClick={sending ? () => abortRef.current?.abort() : submit}
+                  disabled={!sending && !input.trim()}
+                  className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-ink text-on-primary transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+                  aria-label={sending ? "Stop" : "Send"}
+                >
+                  {sending ? <Square size={12} fill="currentColor" /> : <ArrowUp size={16} />}
+                </button>
+              </PromptInputAction>
+            </PromptInputActions>
+          </PromptInput>
         </div>
       </section>
     </div>
