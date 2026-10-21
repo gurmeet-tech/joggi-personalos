@@ -218,9 +218,11 @@ export default function AssistantPage() {
   const [sending, setSending] = useState(false);
   const [deep, setDeep] = useState(false);
   const [pasteMode, setPasteMode] = useState(false);
+  const [listening, setListening] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const recognitionRef = useRef<any>(null);
 
   const active = threads.find((t) => t.id === activeId);
   const messages = active?.messages ?? [];
@@ -251,7 +253,13 @@ export default function AssistantPage() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages.length, sending, activeId]);
 
-  useEffect(() => () => abortRef.current?.abort(), []);
+  useEffect(
+    () => () => {
+      abortRef.current?.abort();
+      recognitionRef.current?.stop?.();
+    },
+    []
+  );
 
   const closeOnMobile = () => {
     if (!isDesktop()) setSidebarOpen(false);
@@ -372,6 +380,62 @@ export default function AssistantPage() {
     void handlePasteText();
   }
 
+  function stopDictation() {
+    recognitionRef.current?.stop?.();
+    recognitionRef.current = null;
+    setListening(false);
+  }
+
+  function startDictation() {
+    const SR =
+      (typeof window !== "undefined" &&
+        ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition)) ||
+      null;
+    if (!SR) {
+      toast("Voice input is not supported in this browser — type instead.", "info");
+      return;
+    }
+    try {
+      const rec = new SR();
+      rec.lang = "en-IN";
+      rec.interimResults = true;
+      rec.continuous = false;
+      const base = input.trim();
+      let finalText = base ? base + " " : "";
+      rec.onresult = (e: any) => {
+        let interim = "";
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+          const t = e.results[i][0].transcript;
+          if (e.results[i].isFinal) finalText += t + " ";
+          else interim += t;
+        }
+        setInput((finalText + interim).trim());
+      };
+      rec.onend = () => {
+        recognitionRef.current = null;
+        setListening(false);
+      };
+      rec.onerror = (e: any) => {
+        recognitionRef.current = null;
+        setListening(false);
+        if (e?.error === "not-allowed" || e?.error === "service-not-allowed") {
+          toast("Microphone permission was denied.", "error");
+        }
+      };
+      recognitionRef.current = rec;
+      setListening(true);
+      rec.start();
+    } catch {
+      setListening(false);
+      toast("Could not start voice input.", "error");
+    }
+  }
+
+  function toggleMic() {
+    if (listening) stopDictation();
+    else startDictation();
+  }
+
   const panelProps = {
     threads,
     activeId,
@@ -392,6 +456,8 @@ export default function AssistantPage() {
       onToggleDeep={() => setDeep((v) => !v)}
       pasteMode={pasteMode}
       onTogglePaste={togglePaste}
+      listening={listening}
+      onToggleMic={toggleMic}
     />
   );
 

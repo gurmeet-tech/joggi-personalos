@@ -71,10 +71,10 @@ const NAV_GROUPS: Array<{ label: string; items: Array<{ href: string; label: str
   },
 ];
 
-function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
+function NavLinks({ onNavigate, className }: { onNavigate?: () => void; className?: string }) {
   const pathname = usePathname();
   return (
-    <nav className="flex h-full flex-col gap-lg overflow-y-auto overscroll-contain px-sm py-md" aria-label="Primary">
+    <nav className={cn("flex flex-col gap-lg overflow-y-auto overscroll-contain px-sm py-md", className)} aria-label="Primary">
       {NAV_GROUPS.map((group) => (
         <div key={group.label}>
           <div className="label-cap mb-xs px-md">{group.label}</div>
@@ -236,7 +236,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             </button>
           </div>
           <div className="mt-sm min-h-0 flex-1 overflow-hidden">
-            <NavLinks />
+            <NavLinks className="h-full" />
           </div>
           <div className="px-md pb-md">
             <button className="btn-primary w-full" onClick={() => setQuickOpen(true)}>
@@ -249,7 +249,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       {!desktopNavOpen && (
         <button
-          onClick={() => setMobileOpen(true)}
+          onClick={() => setDesktopNavOpen(true)}
           className="fixed left-0 top-1/2 z-40 hidden h-12 w-8 -translate-y-1/2 items-center justify-center rounded-r-md border border-l-0 border-hairline-soft bg-canvas-soft text-muted shadow-card transition-colors hover:text-ink lg:flex"
           aria-label="Open sidebar"
         >
@@ -257,17 +257,28 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </button>
       )}
 
-      {/* Navigation drawer — works on mobile and desktop */}
+      {/* Navigation drawer — mobile only */}
       {mobileOpen && (
-        <div className="fixed inset-0 z-50 bg-ink/30" onMouseDown={(e) => e.target === e.currentTarget && setMobileOpen(false)}>
-          <aside className="no-scrollbar absolute inset-y-0 left-0 w-72 overflow-y-auto rounded-r-md bg-canvas-soft">
+        <div className="fixed inset-0 z-50 bg-ink/30 lg:hidden" onMouseDown={(e) => e.target === e.currentTarget && setMobileOpen(false)}>
+          <aside className="absolute inset-y-0 left-0 flex w-72 flex-col overflow-hidden rounded-r-md bg-canvas-soft">
             <div className="flex items-center justify-between px-md pt-md">
               <span className="text-title text-ink">MY OS</span>
               <button onClick={() => setMobileOpen(false)} aria-label="Close menu" className="rounded-full p-xs text-muted hover:bg-field">
                 <X size={18} />
               </button>
             </div>
-            <NavLinks onNavigate={() => setMobileOpen(false)} />
+            <NavLinks className="min-h-0 flex-1 pb-[env(safe-area-inset-bottom)]" onNavigate={() => setMobileOpen(false)} />
+            <div className="border-t border-hairline-soft px-md py-sm">
+              <button
+                className="btn-primary w-full"
+                onClick={() => {
+                  setMobileOpen(false);
+                  setQuickOpen(true);
+                }}
+              >
+                <Plus size={16} /> Quick add
+              </button>
+            </div>
           </aside>
         </div>
       )}
