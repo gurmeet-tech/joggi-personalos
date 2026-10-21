@@ -358,8 +358,8 @@ export async function generateStudyPlan(ctx: PlanContext): Promise<StudyPlanResu
   const days = 7;
   if (status.mode === "live") {
     const live = await liveChat<StudyPlanResult>(
-      "You are an expert Class 12 study coach. Build realistic day-by-day study plans using active recall, spaced revision and mock tests. Never schedule more hours than available.",
-      `Context: ${JSON.stringify(ctx)}. Produce a ${days}-day plan with items: {"days":[{"date","items":[{"id","title","subject","chapter","type":"LEARN"|"PRACTICE"|"REVISION"|"MOCK"|"ENGLISH"|"BREAK","minutes","reason"}],"totalMinutes"}],"rationale":string}`,
+      "You are an expert Class 12 study coach. Build realistic day-by-day study plans using active recall, spaced revision and mock tests. Never schedule more hours than available. RULE: each week must fully master exactly ONE chapter of Physics and ONE chapter of Chemistry — study it, practise it, then schedule a MOCK test on it and a spaced REVISION, so the chapter is destroyed within the week before moving on. Do not scatter across many chapters.",
+      `Context: ${JSON.stringify(ctx)}. Produce a ${days}-day plan with items: {"days":[{"date","items":[{"id","title","subject","chapter","type":"LEARN"|"PRACTICE"|"REVISION"|"MOCK"|"ENGLISH"|"BREAK","minutes","reason"}],"totalMinutes"}],"rationale":string}. Focus the week on mastering one Physics and one Chemistry chapter end to end.`,
       '{"days":[...],"rationale":string}'
     );
     if (live?.days?.length) return { ...live, isDemo: false };
@@ -385,6 +385,14 @@ export async function generateStudyPlan(ctx: PlanContext): Promise<StudyPlanResu
     return -p;
   };
   const sorted = [...flat].sort((a, b) => priority(a) - priority(b));
+  // Weekly mastery focus: one Physics chapter + one Chemistry chapter, destroyed this week.
+  const focusSubjects = ["physics", "chemistry"];
+  const focus: typeof sorted = [];
+  for (const name of focusSubjects) {
+    const match = sorted.find((c) => c.subject.toLowerCase().includes(name) && !focus.includes(c));
+    if (match) focus.push(match);
+  }
+  const workingSet = focus.length ? focus : sorted.slice(0, 2);
   const perDayMinutes = Math.max(60, Math.round((ctx.dailyHours || 4) * 60));
   const planDays: StudyPlanResult["days"] = [];
   let cursor = 0;
@@ -395,8 +403,8 @@ export async function generateStudyPlan(ctx: PlanContext): Promise<StudyPlanResu
     if (items.length === 0 && remaining >= 25) {
       // warm-up recall of a previous chapter
     }
-    while (remaining >= 25 && cursor < sorted.length * 2) {
-      const entry = sorted[cursor % sorted.length];
+    while (remaining >= 25 && cursor < workingSet.length * 4) {
+      const entry = workingSet[cursor % workingSet.length];
       cursor++;
       const isRevision = d >= 2 && cursor % 4 === 0;
       const type: PlanItem["type"] = isRevision ? "REVISION" : entry.status === "NOT_STARTED" ? "LEARN" : "PRACTICE";
@@ -425,10 +433,10 @@ export async function generateStudyPlan(ctx: PlanContext): Promise<StudyPlanResu
     if (d === 3 || d === 6) {
       items.push({
         id: `${date}-mock`,
-        title: "Timed mock test on this week's chapters",
+        title: `Timed mock test — this week's ${workingSet.map((c) => c.chapter).join(" + ")}`,
         type: "MOCK",
         minutes: Math.min(60, Math.max(30, perDayMinutes / 3)),
-        reason: "Weekly retrieval practice reveals weak spots before the board exam.",
+        reason: "Weekly retrieval practice confirms the chapter is truly mastered before moving on.",
       });
     }
     items.push({

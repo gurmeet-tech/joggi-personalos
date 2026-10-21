@@ -4,24 +4,62 @@
 
 :root {
   color-scheme: light;
+  --c-ink: 20 20 20;
+  --c-ink-soft: 38 38 38;
+  --c-canvas: 255 255 255;
+  --c-canvas-soft: 243 243 243;
+  --c-field: 240 240 240;
+  --c-hairline: 224 224 224;
+  --c-hairline-soft: 240 240 240;
+  --c-muted: 112 112 112;
+  --c-faint: 173 173 173;
+  --c-accent: 0 102 255;
+  --c-on-primary: 255 255 255;
+  --chart-ink: #141414;
+  --chart-grid: #e0e0e0;
+  --chart-axis: #707070;
+  --chart-soft: #f3f3f3;
+  --chart-tip-bg: #ffffff;
+  --chart-tip-border: #e0e0e0;
+}
+
+.dark {
+  color-scheme: dark;
+  --c-ink: 245 245 245;
+  --c-ink-soft: 220 220 220;
+  --c-canvas: 12 12 12;
+  --c-canvas-soft: 26 26 26;
+  --c-field: 30 30 30;
+  --c-hairline: 48 48 48;
+  --c-hairline-soft: 38 38 38;
+  --c-muted: 150 150 150;
+  --c-faint: 92 92 92;
+  --c-accent: 82 156 255;
+  --c-on-primary: 12 12 12;
+  --chart-ink: #f5f5f5;
+  --chart-grid: #303030;
+  --chart-axis: #969696;
+  --chart-soft: #1a1a1a;
+  --chart-tip-bg: #1a1a1a;
+  --chart-tip-border: #303030;
 }
 
 html,
 body {
-  background: #ffffff;
-  color: #141414;
+  background: rgb(var(--c-canvas));
+  color: rgb(var(--c-ink));
   font-family: Inter, -apple-system, "Helvetica Neue", Arial, sans-serif;
   font-feature-settings: "cv11", "ss01";
   -webkit-font-smoothing: antialiased;
 }
 
 * {
-  border-color: #f0f0f0;
+  border-color: rgb(var(--c-hairline-soft));
 }
 
 ::selection {
-  background: #141414;
-  color: #ffffff;
+  background: rgb(var(--c-ink));
+  color: rgb(var(--c-canvas));
 }
 
 @layer components {
@@ -75,16 +113,16 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #e0e0e0;
+  background: rgb(var(--c-hairline));
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #adadad;
+  background: rgb(var(--c-faint));
 }
 
 /* Focus visibility for keyboard users */
 :focus-visible {
-  outline: 2px solid #141414;
+  outline: 2px solid rgb(var(--c-ink));
   outline-offset: 2px;
 }
 
@@ -166,22 +204,74 @@ body {
 @keyframes fade-up {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translate3d(0, 8px, 0);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translate3d(0, 0, 0);
   }
 }
 .fade-up {
-  animation: fade-up 0.25s ease-out;
+  animation: fade-up 0.25s ease-out both;
+  will-change: transform, opacity;
+}
+
+/* Performance-safe content reveal: GPU transforms only, no layout thrash */
+@keyframes reveal-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+.reveal > * {
+  animation: reveal-in 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+.reveal > *:nth-child(1) { animation-delay: 0ms; }
+.reveal > *:nth-child(2) { animation-delay: 40ms; }
+.reveal > *:nth-child(3) { animation-delay: 80ms; }
+.reveal > *:nth-child(4) { animation-delay: 120ms; }
+.reveal > *:nth-child(5) { animation-delay: 160ms; }
+.reveal > *:nth-child(6) { animation-delay: 200ms; }
+
+/* Subtle lift for interactive cards — transform only, no paint jitter */
+.hover-lift {
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+.hover-lift:hover {
+  transform: translate3d(0, -2px, 0);
+}
+
+/* Smooth number/ometer transitions without layout shift */
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.pop-in {
+  animation: pop-in 0.2s ease-out both;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .paper-snatch,
   .invigilator-walk,
   .bell-shake,
-  .fade-up {
+  .fade-up,
+  .pop-in,
+  .reveal > * {
     animation: none !important;
+  }
+  .hover-lift:hover {
+    transform: none;
   }
 }

@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useState } from "react";
-import { useApi, Card, Button, Badge, Spinner, ErrorState, Field, Input, Select, Modal, useToast, EmptyState, Checkbox, Segmented, Progress } from "@/components/ui";
+import { useApi, Card, Button, Badge, Spinner, ErrorState, Field, Input, Select, Modal, useToast, EmptyState, Segmented, Progress } from "@/components/ui";
 import { formatDate, todayISO } from "@/lib/utils";
 import { Plus, Trash2, Target, ListChecks } from "lucide-react";
+import SpringCheck from "@/components/reactbits/SpringCheck";
 
 interface Task {
   id: string;
@@ -152,10 +153,21 @@ export default function TasksPage() {
                 const isOverdue = t.status !== "DONE" && t.dueAt && t.dueAt.slice(0, 10) < today;
                 return (
                   <Card key={t.id} soft className="flex items-center gap-sm">
-                    <Checkbox label="" checked={t.status === "DONE"} onChange={(e) => toggleTask(t.id, e.target.checked)} />
+                    <SpringCheck
+                      label={t.title}
+                      checked={t.status === "DONE"}
+                      onChange={(checked) => toggleTask(t.id, checked)}
+                      color="var(--chart-ink)"
+                      fillColor="var(--chart-ink)"
+                      checkColor="var(--chart-tip-bg)"
+                      boxSize={22}
+                      boxRadius={7}
+                      fontSize={12}
+                      strike="left"
+                      ariaLabel={t.title}
+                    />
                     <div className="min-w-0 flex-1">
-                      <p className={`text-body-sm ${t.status === "DONE" ? "line-through text-muted" : "text-ink"}`}>{t.title}</p>
-                      <p className="text-caption text-muted">
+                      <p className={`text-caption text-muted ${t.status === "DONE" ? "opacity-60" : ""}`}>
                         {t.category} · {t.dueAt ? formatDate(t.dueAt) : "no date"}
                         {isOverdue && <span className="text-ink"> · overdue</span>}
                       </p>

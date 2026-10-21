@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { cn, greetingForHour, initials } from "@/lib/utils";
 import { Badge } from "@/components/ui";
+import ThemeToggle from "@/components/theme-toggle";
 
 const NAV_GROUPS: Array<{ label: string; items: Array<{ href: string; label: string; icon: React.ElementType }> }> = [
   {
@@ -139,8 +140,10 @@ function QuickAdd({ onClose }: { onClose: () => void }) {
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [quickOpen, setQuickOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
   const [profile, setProfile] = useState<{ name: string; onboarded: boolean }>({ name: "Student", onboarded: false });
   const [dueCount, setDueCount] = useState(0);
+  const [todo, setTodo] = useState<Array<{ kind: string; label: string; href: string }>>([]);
   const pathname = usePathname();
   const router = useRouter();
   const isExam = pathname.startsWith("/exam/active");
@@ -155,7 +158,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       .catch(() => {});
     fetch("/api/dashboard")
       .then((r) => r.json())
-      .then((d) => setDueCount((d.revisionDue?.length || 0) + (d.overdueTasks?.length || 0)))
+      .then((d) => {
+        const items: Array<{ kind: string; label: string; href: string }> = [];
+        (d.overdueTasks || []).forEach((t: { title: string }) => items.push({ kind: "Overdue task", label: t.title, href: "/tasks" }));
+        (d.revisionDue || []).forEach((r: { title: string; kind: string }) => items.push({ kind: r.kind === "mistake" ? "Mistake review" : "Revision due", label: r.title, href: r.kind === "mistake" ? "/mistakes" : "/revision" }));
+        (d.leadsDue || []).forEach((l: { name: string }) => items.push({ kind: "Freelance follow-up", label: l.name, href: "/freelance" }));
+        (d.pendingTasks || []).slice(0, 3).forEach((t: { title: string }) => items.push({ kind: "To do today", label: t.title, href: "/tasks" }));
+        setTodo(items.slice(0, 8));
+        setDueCount(items.length);
+      })
       .catch(() => {});
   }, [pathname, router]);
 
@@ -232,18 +243,56 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             >
               <Search size={14} /> Ask anything…
             </button>
-            <button
-              className="relative rounded-full p-sm text-ink hover:bg-canvas-soft"
-              aria-label={dueCount ? `${dueCount} items need attention` : "Notifications"}
-              onClick={() => router.push("/dashboard")}
-            >
-              <Bell size={18} />
-              {dueCount > 0 && (
-                <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-ink px-xxs text-[10px] font-semibold text-on-primary">
-                  {dueCount > 9 ? "9+" : dueCount}
-                </span>
+            <ThemeToggle />
+            <div className="relative">
+              <button
+                className="relative rounded-full p-sm text-ink hover:bg-canvas-soft"
+                aria-label={dueCount ? `${dueCount} items need attention` : "Notifications"}
+                aria-expanded={notifOpen}
+                onClick={() => setNotifOpen((v) => !v)}
+              >
+                <Bell size={18} />
+                {dueCount > 0 && (
+                  <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-ink px-xxs text-[10px] font-semibold text-on-primary">
+                    {dueCount > 9 ? "9+" : dueCount}
+                  </span>
+                )}
+              </button>
+              {notifOpen && (
+                <>
+                  <div className="fixed inset-0 z-30" onClick={() => setNotifOpen(false)} aria-hidden />
+                  <div className="pop-in absolute right-0 top-[calc(100%+8px)] z-40 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-md border border-hairline-soft bg-canvas shadow-overlay">
+                    <div className="flex items-center justify-between border-b border-hairline-soft px-md py-sm">
+                      <span className="text-title text-ink">What you need to do</span>
+                      <span className="text-caption text-muted">{todo.length ? `${todo.length} pending` : "All clear"}</span>
+                    </div>
+                    {todo.length === 0 ? (
+                      <p className="px-md py-lg text-center text-body-sm text-muted">Nothing overdue. Your revision queue is empty. Go lock in a chapter.</p>
+                    ) : (
+                      <ul className="max-h-[60vh] overflow-y-auto py-xs">
+                        {todo.map((t, i) => (
+                          <li key={i}>
+                            <button
+                              className="flex w-full items-start gap-sm px-md py-sm text-left hover:bg-canvas-soft"
+                              onClick={() => {
+                                setNotifOpen(false);
+                                router.push(t.href);
+                              }}
+                            >
+                              <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ink" />
+                              <span className="min-w-0">
+                                <span className="block text-caption uppercase tracking-wide text-faint">{t.kind}</span>
+                                <span className="block truncate text-body-sm text-ink">{t.label}</span>
+                              </span>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </>
               )}
-            </button>
+            </div>
             <button className="flex items-center gap-xs rounded-full bg-canvas-soft py-xs pl-xs pr-sm text-body-sm text-ink hover:opacity-80" onClick={() => router.push("/settings")}>
               <span className="flex h-7 w-7 items-center justify-center rounded-full bg-ink text-label text-on-primary">{initials(profile.name)}</span>
               <span className="hidden sm:inline">Profile</span>

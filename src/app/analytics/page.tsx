@@ -80,12 +80,12 @@ export default function AnalyticsPage() {
           <div className="mt-md h-64">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={data.studyByDay}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" vertical={false} />
-                <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#707070" }} tickFormatter={(v) => v.slice(5)} />
-                <YAxis tick={{ fontSize: 10, fill: "#707070" }} width={32} />
-                <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid #e0e0e0", fontSize: 12 }} />
-                <Area type="monotone" dataKey="planned" stroke="#adadad" fill="#f3f3f3" name="Planned" />
-                <Area type="monotone" dataKey="actual" stroke="#141414" fill="#14141422" name="Actual" />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
+                <XAxis dataKey="date" tick={{ fontSize: 10, fill: "var(--chart-axis)" }} tickFormatter={(v) => v.slice(5)} />
+                <YAxis tick={{ fontSize: 10, fill: "var(--chart-axis)" }} width={32} />
+                <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid var(--chart-tip-border)", background: "var(--chart-tip-bg)", color: "var(--chart-ink)", fontSize: 12 }} />
+                <Area type="monotone" dataKey="planned" stroke="var(--chart-axis)" fill="var(--chart-soft)" name="Planned" />
+                <Area type="monotone" dataKey="actual" stroke="var(--chart-ink)" fill="var(--chart-ink)" fillOpacity={0.13} name="Actual" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -100,11 +100,11 @@ export default function AnalyticsPage() {
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={data.mockHistory.map((m, i) => ({ ...m, idx: i + 1 }))}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" vertical={false} />
-                  <XAxis dataKey="idx" tick={{ fontSize: 10, fill: "#707070" }} />
-                  <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: "#707070" }} width={32} />
-                  <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid #e0e0e0", fontSize: 12 }} labelFormatter={(l) => `Attempt ${l}`} />
-                  <Line type="monotone" dataKey="pct" stroke="#141414" strokeWidth={2} dot={{ r: 3, fill: "#141414" }} name="Score %" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
+                  <XAxis dataKey="idx" tick={{ fontSize: 10, fill: "var(--chart-axis)" }} />
+                  <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: "var(--chart-axis)" }} width={32} />
+                  <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid var(--chart-tip-border)", background: "var(--chart-tip-bg)", color: "var(--chart-ink)", fontSize: 12 }} labelFormatter={(l) => `Attempt ${l}`} />
+                  <Line type="monotone" dataKey="pct" stroke="var(--chart-ink)" strokeWidth={2} dot={{ r: 3, fill: "var(--chart-ink)" }} name="Score %" />
                 </LineChart>
               </ResponsiveContainer>
             )}
@@ -119,11 +119,11 @@ export default function AnalyticsPage() {
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={data.studyBySubject} layout="vertical" margin={{ left: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" horizontal={false} />
-                  <XAxis type="number" tick={{ fontSize: 10, fill: "#707070" }} />
-                  <YAxis type="category" dataKey="subject" tick={{ fontSize: 10, fill: "#707070" }} width={90} />
-                  <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid #e0e0e0", fontSize: 12 }} />
-                  <Bar dataKey="minutes" fill="#141414" radius={[0, 8, 8, 0]} name="Minutes" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" horizontal={false} />
+                  <XAxis type="number" tick={{ fontSize: 10, fill: "var(--chart-axis)" }} />
+                  <YAxis type="category" dataKey="subject" tick={{ fontSize: 10, fill: "var(--chart-axis)" }} width={90} />
+                  <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid var(--chart-tip-border)", background: "var(--chart-tip-bg)", color: "var(--chart-ink)", fontSize: 12 }} />
+                  <Bar dataKey="minutes" fill="var(--chart-ink)" radius={[0, 8, 8, 0]} name="Minutes" />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -135,10 +135,10 @@ export default function AnalyticsPage() {
           <div className="mt-md h-64">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={data.scoreBySubject.map((s) => ({ ...s, avgScore: s.avgScore ?? 0 }))}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" vertical={false} />
-                <XAxis dataKey="subject" tick={{ fontSize: 10, fill: "#707070" }} />
-                <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: "#707070" }} width={32} />
-                <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid #e0e0e0", fontSize: 12 }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
+                <XAxis dataKey="subject" tick={{ fontSize: 10, fill: "var(--chart-axis)" }} />
+                <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: "var(--chart-axis)" }} width={32} />
+                <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid var(--chart-tip-border)", background: "var(--chart-tip-bg)", color: "var(--chart-ink)", fontSize: 12 }} />
                 <Bar dataKey="avgScore" fill="#0066ff" radius={[8, 8, 0, 0]} name="Avg %" />
               </BarChart>
             </ResponsiveContainer>
@@ -177,7 +177,7 @@ export default function AnalyticsPage() {
                     <Cell key={i} fill={MONO[i % MONO.length]} />
                   ))}
                 </Pie>
-                <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid #e0e0e0", fontSize: 12 }} />
+                <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid var(--chart-tip-border)", background: "var(--chart-tip-bg)", color: "var(--chart-ink)", fontSize: 12 }} />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -213,11 +213,11 @@ export default function AnalyticsPage() {
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={data.englishTrend.map((e, i) => ({ ...e, idx: i + 1 }))}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" vertical={false} />
-                  <XAxis dataKey="idx" tick={{ fontSize: 10, fill: "#707070" }} />
-                  <YAxis tick={{ fontSize: 10, fill: "#707070" }} width={32} />
-                  <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid #e0e0e0", fontSize: 12 }} />
-                  <Line type="monotone" dataKey="wpm" stroke="#141414" strokeWidth={2} name="WPM" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
+                  <XAxis dataKey="idx" tick={{ fontSize: 10, fill: "var(--chart-axis)" }} />
+                  <YAxis tick={{ fontSize: 10, fill: "var(--chart-axis)" }} width={32} />
+                  <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid var(--chart-tip-border)", background: "var(--chart-tip-bg)", color: "var(--chart-ink)", fontSize: 12 }} />
+                  <Line type="monotone" dataKey="wpm" stroke="var(--chart-ink)" strokeWidth={2} name="WPM" />
                   <Line type="monotone" dataKey="fillers" stroke="#0066ff" strokeWidth={2} name="Fillers" />
                 </LineChart>
               </ResponsiveContainer>
@@ -236,11 +236,11 @@ export default function AnalyticsPage() {
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={data.freelance.funnel} layout="vertical" margin={{ left: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" horizontal={false} />
-                  <XAxis type="number" allowDecimals={false} tick={{ fontSize: 10, fill: "#707070" }} />
-                  <YAxis type="category" dataKey="stage" tick={{ fontSize: 9, fill: "#707070" }} width={80} />
-                  <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid #e0e0e0", fontSize: 12 }} />
-                  <Bar dataKey="count" fill="#141414" radius={[0, 8, 8, 0]} name="Leads" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" horizontal={false} />
+                  <XAxis type="number" allowDecimals={false} tick={{ fontSize: 10, fill: "var(--chart-axis)" }} />
+                  <YAxis type="category" dataKey="stage" tick={{ fontSize: 9, fill: "var(--chart-axis)" }} width={80} />
+                  <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid var(--chart-tip-border)", background: "var(--chart-tip-bg)", color: "var(--chart-ink)", fontSize: 12 }} />
+                  <Bar dataKey="count" fill="var(--chart-ink)" radius={[0, 8, 8, 0]} name="Leads" />
                 </BarChart>
               </ResponsiveContainer>
             )}

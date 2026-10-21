@@ -2,8 +2,11 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { useApi, Spinner, ErrorState, useToast } from "@/components/ui";
-import { greetingForHour, cn } from "@/lib/utils";
-import { ArrowUp, Mic, Square, Trash2, Sparkles } from "lucide-react";
+import { greetingForHour } from "@/lib/utils";
+import { Trash2, Sparkles } from "lucide-react";
+import PromptBar from "@/components/reactbits/PromptBar";
+import ThoughtLine from "@/components/reactbits/ThoughtLine";
+import LatticeLoader from "@/components/reactbits/LatticeLoader";
 
 interface Msg {
   id: string;
@@ -24,12 +27,10 @@ const SUGGESTIONS = [
 
 export default function AssistantPage() {
   const toast = useToast();
-  const { data: history, loading, error, reload } = useApi<Msg[]>("/api/assistant");
+  const { loading, error, reload } = useApi<Msg[]>("/api/assistant");
   const { data: profile } = useApi<Profile>("/api/profile");
   const [messages, setMessages] = useState<Msg[]>([]);
-  const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
-  const [listening, setListening] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
 
@@ -38,17 +39,12 @@ export default function AssistantPage() {
   const empty = messages.length === 0;
 
   useEffect(() => {
-    if (history) setMessages(history);
-  }, [history]);
-
-  useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, sending]);
 
   async function send(text?: string) {
-    const content = (text ?? input).trim();
+    const content = (text ?? "").trim();
     if (!content || sending) return;
-    setInput("");
     const optimistic: Msg = { id: "tmp-" + Date.now(), role: "user", content, createdAt: new Date().toISOString() };
     setMessages((m) => [...m, optimistic]);
     setSending(true);
@@ -76,27 +72,29 @@ export default function AssistantPage() {
     reload();
   }
 
-  function toggleVoice() {
-    const SR = (typeof window !== "undefined" && ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition)) || null;
-    if (!SR) {
-      toast("Voice input is not supported in this browser. You can type instead.", "error");
-      return;
-    }
-    if (listening) {
-      recognitionRef.current?.stop();
-      setListening(false);
-      return;
-    }
-    const rec = new SR();
-    rec.lang = "en-IN";
-    rec.interimResults = true;
-    rec.continuous = false;
-    rec.onresult = (e: any) => setInput(Array.from(e.results).map((r: any) => r[0].transcript).join(""));
-    rec.onend = () => setListening(false);
-    rec.onerror = () => setListening(false);
-    recognitionRef.current = rec;
-    setListening(true);
-    rec.start();
+  function dictate(): Promise<string> {
+    return new Promise((resolve) => {
+      const SR = (typeof window !== "undefined" && ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition)) || null;
+      if (!SR) {
+        toast("Voice input is not supported in this browser. You can type instead.", "error");
+        resolve("");
+        return;
+      }
+      const rec = new SR();
+      recognitionRef.current = rec;
+      rec.lang = "en-IN";
+      rec.interimResults = false;
+      rec.continuous = false;
+      rec.onresult = (e: any) => resolve(Array.from(e.results).map((r: any) => r[0].transcript).join(" "));
+      rec.onerror = () => resolve("");
+      rec.onend = () => resolve("");
+      rec.start();
+    });
+  }
+
+  async function attach(): Promise<string> {
+    toast("Attachments are visual only — paste the text in and I'll read it.", "info");
+    return "notes.txt";
   }
 
   if (loading) return <Spinner label="Loading assistant…" />;
@@ -148,44 +146,46 @@ export default function AssistantPage() {
                 <div key={m.id} className="whitespace-pre-wrap text-body-sm leading-relaxed text-ink">{m.content}</div>
               )
             )}
-            {sending && <div className="text-body-sm text-faint">Thinking…</div>}
+            {sending && (
+              <div className="flex items-center gap-sm">
+                <LatticeLoader label="Thinking" status="working" grid={3} pattern="orbit" cellSize={5} fontSize={12} color="var(--chart-ink)" />
+                <ThoughtLine label="Working it out" working showTimer={false} fontSize={12} color="var(--chart-axis)" glyphColor="var(--chart-axis)" />
+              </div>
+            )}
           </div>
         )}
       </div>
 
-      {/* Composer */}
-      <div className="pt-md">
-        {listening && <p className="mb-xs text-caption text-muted">Listening… speak now.</p>}
-        <div className="flex items-end gap-xs rounded-md border border-hairline bg-canvas px-sm py-xs shadow-overlay focus-within:border-ink">
-          <textarea
-            className="max-h-40 flex-1 resize-none bg-transparent py-xs text-body-sm text-ink outline-none placeholder:text-faint"
-            rows={1}
-            placeholder={`Message your assistant…`}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                send();
-              }
-            }}
-          />
-          <button
-            onClick={toggleVoice}
-            aria-label="Voice input"
-            className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted transition-colors hover:bg-field hover:text-ink", listening && "text-accent")}
-          >
-            {listening ? <Square size={15} /> : <Mic size={16} />}
-          </button>
-          <button
-            onClick={() => send()}
-            disabled={sending || !input.trim()}
-            aria-label="Send"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-ink text-on-primary transition-opacity hover:opacity-85 disabled:opacity-30"
-          >
-            <ArrowUp size={16} />
-          </button>
-        </div>
+      {/* Composer — sticky on mobile so it rides above the bottom nav */}
+      <div className="sticky bottom-14 z-10 -mx-md mt-md bg-gradient-to-t from-canvas via-canvas to-transparent px-md pb-sm pt-md lg:static lg:bottom-auto lg:mx-0 lg:px-0 lg:pt-md">
+        <PromptBar
+          placeholder="Message your assistant…"
+          busy={sending}
+          width={768}
+          radius={16}
+          background="var(--chart-soft)"
+          menuBackground="var(--chart-tip-bg)"
+          color="var(--chart-ink)"
+          sparkColor="var(--chart-ink)"
+          sources={[
+            { key: "tasks", name: "Tasks", description: "Your open tasks and to-dos" },
+            { key: "mistakes", name: "Mistakes", description: "Your mistake notebook" },
+            { key: "revisions", name: "Revisions", description: "Chapters due for revision" },
+            { key: "leads", name: "Freelance", description: "Client leads and follow-ups" },
+          ]}
+          commands={[
+            { key: "plan", name: "plan", description: "Build a study plan" },
+            { key: "test", name: "test", description: "Generate a mock test" },
+            { key: "review", name: "review", description: "Review weak chapters" },
+          ]}
+          models={[
+            { key: "big-pickle", name: "MY OS model", tag: "fast" },
+          ]}
+          onSend={(text) => send(text)}
+          onStop={() => setSending(false)}
+          onAttach={attach}
+          onDictate={dictate}
+        />
       </div>
     </div>
   );

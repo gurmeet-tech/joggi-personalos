@@ -75,6 +75,34 @@ export function streakFromDates(dates: string[]): number {
   return streak;
 }
 
+export function daysUntil(targetISO: string): number {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const target = new Date(`${targetISO}T00:00:00`);
+  if (Number.isNaN(target.getTime())) return 0;
+  return Math.round((target.getTime() - today.getTime()) / 86400000);
+}
+
+const DELUSIONAL_QUOTES = [
+  "Boards don't stand a chance. You're built different this year.",
+  "You're not behind — you're just getting started, and you already know that.",
+  "One chapter today beats a hundred excuses tomorrow.",
+  "The version of you on result day is watching. Make him proud.",
+  "You don't need motivation. You need to start — the fire comes after.",
+  "Nobody's coming to save you. Good. You never needed saving anyway.",
+  "Study like the rank is already yours and you're just claiming it.",
+  "Discipline is just self-respect in action. Respect yourself today.",
+  "You've survived worse weeks than this. This one's easy.",
+  "Your future self is begging for the version of today you're about to build.",
+  "Every mock test is a rehearsal for the day you win.",
+  "Delusion check: you ARE that guy. Now go act like it.",
+];
+
+export function quoteForDay(seed: number): string {
+  const i = Math.abs(Math.floor(seed)) % DELUSIONAL_QUOTES.length;
+  return DELUSIONAL_QUOTES[i];
+}
+
 export function clamp(n: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, n));
 }

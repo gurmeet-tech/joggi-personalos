@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useApi, Card, Button, Spinner, ErrorState, Badge, Field, Select, Stat, Progress, EmptyState, useToast } from "@/components/ui";
 import { Mic, Square, Send, Volume2 } from "lucide-react";
+import VoicePill from "@/components/reactbits/VoicePill";
 
 interface Feedback {
   metrics: { wpm: number; fillerCount: number; pauseCount: number; grammarIssues: number; uniqueWordRatio: number; sentences: number; wordCount?: number };
@@ -60,14 +61,14 @@ export default function EnglishPage() {
     recognitionRef.current?.stop?.();
   }, []);
 
-  function toggleRecord() {
+  function stopRecord() {
+    recognitionRef.current?.stop?.();
+    clearInterval(timerRef.current);
+    setRecording(false);
+  }
+
+  function startRecord() {
     const SR = (typeof window !== "undefined" && ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition)) || null;
-    if (recording) {
-      recognitionRef.current?.stop();
-      clearInterval(timerRef.current);
-      setRecording(false);
-      return;
-    }
     if (!SR) {
       toast("Live transcription is not supported here — type your response instead.", "info");
       setRecording(true);
@@ -98,6 +99,11 @@ export default function EnglishPage() {
     setElapsed(0);
     timerRef.current = setInterval(() => setElapsed((e) => e + 1), 1000);
     rec.start();
+  }
+
+  function toggleRecord() {
+    if (recording) stopRecord();
+    else startRecord();
   }
 
   async function submit() {
@@ -182,10 +188,27 @@ export default function EnglishPage() {
             </Select>
           </Field>
 
-          <div className="mt-md flex items-center gap-sm">
+          <div className="mt-md flex flex-wrap items-center gap-sm">
             <Button onClick={toggleRecord} variant={recording ? "primary" : "outline"} className={recording ? "animate-none" : ""}>
               {recording ? <Square size={16} /> : <Mic size={16} />} {recording ? "Stop" : "Record"}
             </Button>
+            <VoicePill
+              mode="toggle"
+              reactive="mic"
+              shape="pill"
+              size={44}
+              accentColor="var(--chart-ink)"
+              iconColor="var(--chart-tip-bg)"
+              background="var(--chart-ink)"
+              showTime
+              onStart={() => {
+                if (!recording) startRecord();
+              }}
+              onStop={() => {
+                if (recording) stopRecord();
+              }}
+              ariaLabel="Voice record"
+            />
             <span className="text-body-sm text-muted tabular-nums">{Math.floor(elapsed / 60)}:{String(elapsed % 60).padStart(2, "0")}</span>
             {recording && <span className="flex items-center gap-xs text-caption text-ink"><span className="h-2 w-2 animate-pulse rounded-full bg-ink" /> recording</span>}
           </div>

@@ -127,6 +127,53 @@ export async function GET() {
     date: a.submittedAt?.toISOString() ?? a.createdAt.toISOString(),
   }));
 
+  // Performance trail for the dashboard graph (chronological, last 12 attempts)
+  const performance = [...attempts]
+    .reverse()
+    .map((a, i) => ({
+      idx: i + 1,
+      pct: a.maxScore ? pct(a.score ?? 0, a.maxScore) : 0,
+      subject: a.paper.subject?.name ?? "",
+      date: (a.submittedAt?.toISOString() ?? a.createdAt.toISOString()).slice(0, 10),
+    }));
+
+  // Weekly chapter targets: master one Physics + one Chemistry chapter per week.
+  const weekStart = dateOffsetISO(-new Date(`${today}T00:00:00`).getDay());
+  const weekEnd = dateOffsetISO(6 - new Date(`${today}T00:00:00`).getDay());
+  const pickNextChapter = (subjectName: string) => {
+    const subj = subjects.find((s) => s.name.toLowerCase().includes(subjectName.toLowerCase()));
+    if (!subj) return null;
+    const target =
+      subj.chapters.find((c) => c.status === "REVISION_REQUIRED") ??
+      subj.chapters.find((c) => c.status === "IN_PROGRESS") ??
+      subj.chapters.find((c) => c.status === "STUDIED" || c.status === "TEST_PENDING") ??
+      subj.chapters.find((c) => c.status === "NOT_STARTED") ??
+      subj.chapters[0] ??
+      null;
+    if (!target) return null;
+    return { id: target.id, name: target.name, subject: subj.name, status: target.status, confidence: target.confidence, completion: target.completion };
+  };
+
+  const weeklyTargets = [
+    { area: "Physics", ...(pickNextChapter("Physics") ?? { id: null, name: null, subject: "Physics", status: null, confidence: null, completion: null }) },
+    { area: "Chemistry", ...(pickNextChapter("Chemistry") ?? { id: null, name: null, subject: "Chemistry", status: null, confidence: null, completion: null }) },
+  ];
+
+  // Tool recommendations — point at real apps/features based on state.
+  const tools: Array<{ title: string; reason: string; href: string }> = [];
+  if (mistakesDue.length) tools.push({ title: "Mistake Notebook", reason: `${mistakesDue.length} mistake(s) due for spaced review.`, href: "/mistakes" });
+  if (revisionDueChapters.length) tools.push({ title: "Revision Center", reason: `${revisionDueChapters.length} chapter(s) ready to resurface.`, href: "/revision" });
+  if (topWeak.length) tools.push({ title: "AI Exam Studio", reason: `Test "${topWeak[0].name}" to lock it in — confidence ${topWeak[0].confidence}/5.`, href: "/exam-studio" });
+  if (weeklyTargets.some((t) => t.name)) tools.push({ title: "Study Planner", reason: "Turn this week's chapter targets into daily blocks.", href: "/planner" });
+  tools.push({ title: "English Lab", reason: data_englishReason(englishStreak, englishSessions), href: "/english" });
+  if (leadsDue.length) tools.push({ title: "Freelance CRM", reason: `${leadsDue.length} follow-up(s) due.`, href: "/freelance" });
+  tools.push({ title: "Winter Arc", reason: "Lock in your deep-work season and track the streak.", href: "/winter-arc" });
+
+  function data_englishReason(streak: number, sessions: typeof englishSessions): string {
+    if (streak === 0) return "No streak yet — a 5-minute drill starts one.";
+    return `${streak}-day speaking streak. Keep it alive with a quick prompt.`;
+  }
+
   return NextResponse.json({
     profile,
     date: today,
@@ -158,5 +205,8 @@ export async function GET() {
       weekDone: h.logs.filter((l) => l.done && l.date >= dateOffsetISO(-6)).length,
     })),
     upcoming,
+    performance,
+    weeklyTargets: { weekStart, weekEnd, targets: weeklyTargets },
+    tools: tools.slice(0, 5),
   });
 }
