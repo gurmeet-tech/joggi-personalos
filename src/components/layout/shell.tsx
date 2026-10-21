@@ -342,12 +342,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        <main className={cn("px-md lg:px-xl", isAssistant ? "py-md" : "py-lg")}>{children}</main>
+        <main className={cn(isAssistant ? "h-[calc(100dvh-4rem)] lg:h-dvh" : "px-md py-lg lg:px-xl")}>{children}</main>
       </div>
 
       {/* Mobile bottom nav */}
-      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-hairline-soft bg-canvas lg:hidden" aria-label="Mobile">
-        <div className="flex items-stretch justify-around py-xs">
+      <nav className="fixed inset-x-0 bottom-0 z-30 h-16 border-t border-hairline-soft bg-canvas lg:hidden" aria-label="Mobile">
+        <div className="flex h-full items-stretch justify-around py-xs">
           {[
             { href: "/dashboard", label: "Home", icon: LayoutGrid },
             { href: "/assistant", label: "AI assistant", icon: Sparkles },
@@ -355,7 +355,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             const active = pathname === i.href || (i.href !== "/dashboard" && pathname.startsWith(i.href));
             const Icon = i.icon;
             return (
-              <Link key={i.href} href={i.href} className={cn("flex flex-col items-center gap-xxs rounded-full px-xs py-xs text-caption", active ? "text-ink" : "text-faint")}>
+              <Link key={i.href} href={i.href} className={cn("flex flex-col items-center justify-center gap-xxs rounded-full px-xs py-xs text-caption", active ? "text-ink" : "text-faint")}>
                 <Icon size={18} strokeWidth={active ? 2.2 : 1.6} />
                 {i.label}
               </Link>
@@ -363,7 +363,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           })}
         </div>
       </nav>
-      <div className="h-16 lg:hidden" />
+      {!isAssistant && <div className="h-16 lg:hidden" />}
 
       {quickOpen && <QuickAdd onClose={() => setQuickOpen(false)} />}
       {!profile.onboarded && <Badge className="sr-only">setup required</Badge>}

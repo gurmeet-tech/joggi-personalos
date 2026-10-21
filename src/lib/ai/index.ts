@@ -598,11 +598,22 @@ export interface AssistantContext {
   studyMinutesToday: number;
 }
 
+/** The chat UI renders plain text, so strip markdown the model tends to emit. */
+function plainText(reply: string): string {
+  return reply
+    .replace(/```[a-z]*\n?/gi, "")
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/__(.*?)__/g, "$1")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/^\s{0,3}#{1,6}\s+/gm, "")
+    .replace(/^\s*[-*]\s+/gm, "• ")
+    .trim();
+}
+
 export async function assistantReply(
   history: Array<{ role: string; content: string }>,
   ctx: AssistantContext
-): Promise<{ reply: string; isDemo: boolean }> {
-  const lastUser = [...history].reverse().find((m) => m.role === "user")?.content?.toLowerCase() || "";
+): Promise<{ reply: string; isDemo: boolean }> {  const lastUser = [...history].reverse().find((m) => m.role === "user")?.content?.toLowerCase() || "";
 
   // Deterministic local intents (work in both modes; instant and data-grounded).
   if (/weakest|weak chapters|bad at/.test(lastUser)) {
@@ -646,11 +657,11 @@ export async function assistantReply(
   const status = aiStatus();
   if (status.mode === "live") {
     const live = await liveChat<{ reply: string }>(
-      "You are the MY OS personal assistant for a Class 12 student. Use ONLY the provided workspace context. Never invent data. Be concise, specific and action-oriented. You may propose creating tasks, tests or plans but must ask for confirmation before creating anything.",
+      "You are the MY OS personal assistant for a Class 12 student. Use ONLY the provided workspace context. Never invent data. Be concise, specific and action-oriented. You may propose creating tasks, tests or plans but must ask for confirmation before creating anything. Reply in clean plain text only: never use markdown, asterisks, bold, headings or code fences. Keep it short — 2 to 4 sentences for simple answers, or a short numbered list for steps.",
       `Context: ${JSON.stringify(ctx)}\n\nConversation:\n${history.map((m) => `${m.role}: ${m.content}`).join("\n")}`,
       '{"reply":string}'
     );
-    if (live?.reply) return { reply: live.reply, isDemo: false };
+    if (live?.reply) return { reply: plainText(live.reply), isDemo: false };
   }
 
   return {

@@ -81,8 +81,17 @@ function saveThreads(threads: Thread[]) {
   }
 }
 
-function updatedLabel(ts: number): string {
-  const d = new Date(ts);
+/** Clean up stray markdown from older saved replies. */
+function plainReply(text: string): string {
+  return text
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/__(.*?)__/g, "$1")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/^\s{0,3}#{1,6}\s+/gm, "")
+    .replace(/^\s*[-*]\s+/gm, "• ");
+}
+
+function updatedLabel(ts: number): string {  const d = new Date(ts);
   const now = new Date();
   const sameDay =
     d.getDate() === now.getDate() &&
@@ -393,8 +402,56 @@ export default function AssistantPage() {
     onClear: clearAll,
   };
 
+  const composer = (
+    <PromptInput
+      className="assistant-prompt rounded-3xl border border-gray-200 bg-white p-2 shadow-xl"
+      value={input}
+      onValueChange={setInput}
+      onSubmit={submit}
+      maxHeight={160}
+      isLoading={sending}
+    >
+      <PromptInputTextarea placeholder="Ask anything…" />
+      <PromptInputActions className="justify-between px-xs">
+        <div className="flex items-center gap-xxs">
+          <PromptInputAction tooltip="Attach file">
+            <button
+              type="button"
+              onClick={() => void attach()}
+              className="rounded-full p-xs text-muted transition-colors hover:bg-field hover:text-ink"
+              aria-label="Attach file"
+            >
+              <Paperclip size={15} />
+            </button>
+          </PromptInputAction>
+          <PromptInputAction tooltip="Dictate">
+            <button
+              type="button"
+              onClick={handleDictate}
+              className="rounded-full p-xs text-muted transition-colors hover:bg-field hover:text-ink"
+              aria-label="Dictate"
+            >
+              <Mic size={15} />
+            </button>
+          </PromptInputAction>
+        </div>
+        <PromptInputAction tooltip={sending ? "Stop" : "Send"}>
+          <button
+            type="button"
+            onClick={sending ? () => abortRef.current?.abort() : submit}
+            disabled={!sending && !input.trim()}
+            className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-ink text-on-primary transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+            aria-label={sending ? "Stop" : "Send"}
+          >
+            {sending ? <Square size={12} fill="currentColor" /> : <ArrowUp size={16} />}
+          </button>
+        </PromptInputAction>
+      </PromptInputActions>
+    </PromptInput>
+  );
+
   return (
-    <div className="mx-auto flex h-[calc(100dvh-7rem)] w-full max-w-5xl gap-md lg:h-[calc(100dvh-3.5rem)]">
+    <div className="mx-auto flex h-full w-full max-w-5xl gap-md p-md lg:p-lg">
       {/* Desktop chat sidebar */}
       {sidebarOpen && (
         <aside className="hidden w-60 shrink-0 overflow-hidden rounded-md border border-hairline-soft bg-canvas-soft lg:block">
@@ -413,7 +470,7 @@ export default function AssistantPage() {
       )}
 
       {/* Chat column */}
-      <section className="flex min-w-0 flex-1 flex-col">
+      <section className="relative flex min-w-0 flex-1 flex-col">
         <header className="flex items-center gap-xs border-b border-hairline-soft pb-sm">
           <button
             onClick={() => setSidebarOpen((v) => !v)}
@@ -435,9 +492,9 @@ export default function AssistantPage() {
         </header>
 
         {/* Stream / minimal empty state */}
-        <div ref={scrollRef} className="no-scrollbar min-h-0 flex-1 overflow-y-auto pb-sm">
+        <div ref={scrollRef} className="no-scrollbar min-h-0 flex-1 overflow-y-auto">
           {empty ? (
-            <div className="flex h-full flex-col items-center justify-center px-md text-center">
+            <div className="flex h-full flex-col items-center justify-center px-md pb-20 text-center">
               <p className="text-h3 text-ink">
                 {greeting}, {firstName}.
               </p>
@@ -451,7 +508,7 @@ export default function AssistantPage() {
               </div>
             </div>
           ) : (
-            <div className="flex flex-col gap-md py-md">
+            <div className="flex flex-col gap-md pb-36 pt-md">
               {messages.map((m) =>
                 m.role === "user" ? (
                   <div key={m.id} className="flex justify-end">
@@ -461,7 +518,7 @@ export default function AssistantPage() {
                   </div>
                 ) : (
                   <div key={m.id} className="whitespace-pre-wrap text-body leading-relaxed text-ink">
-                    {m.content}
+                    {plainReply(m.content)}
                   </div>
                 )
               )}
@@ -480,53 +537,9 @@ export default function AssistantPage() {
           )}
         </div>
 
-        {/* Composer — sits above the mobile bottom nav, inside the chat column */}
-        <div className="shrink-0 pt-sm">
-          <PromptInput
-            className="assistant-prompt rounded-3xl border border-gray-200 bg-white p-2 shadow-xl"
-            value={input}
-            onValueChange={setInput}
-            onSubmit={submit}
-            maxHeight={160}
-            isLoading={sending}
-          >
-            <PromptInputTextarea placeholder="Ask anything…" />
-            <PromptInputActions className="justify-between px-xs">
-              <div className="flex items-center gap-xxs">
-                <PromptInputAction tooltip="Attach file">
-                  <button
-                    type="button"
-                    onClick={() => void attach()}
-                    className="rounded-full p-xs text-muted transition-colors hover:bg-field hover:text-ink"
-                    aria-label="Attach file"
-                  >
-                    <Paperclip size={15} />
-                  </button>
-                </PromptInputAction>
-                <PromptInputAction tooltip="Dictate">
-                  <button
-                    type="button"
-                    onClick={handleDictate}
-                    className="rounded-full p-xs text-muted transition-colors hover:bg-field hover:text-ink"
-                    aria-label="Dictate"
-                  >
-                    <Mic size={15} />
-                  </button>
-                </PromptInputAction>
-              </div>
-              <PromptInputAction tooltip={sending ? "Stop" : "Send"}>
-                <button
-                  type="button"
-                  onClick={sending ? () => abortRef.current?.abort() : submit}
-                  disabled={!sending && !input.trim()}
-                  className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-ink text-on-primary transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
-                  aria-label={sending ? "Stop" : "Send"}
-                >
-                  {sending ? <Square size={12} fill="currentColor" /> : <ArrowUp size={16} />}
-                </button>
-              </PromptInputAction>
-            </PromptInputActions>
-          </PromptInput>
+        {/* Floating composer — messages scroll underneath it */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-canvas via-canvas to-transparent pt-xl">
+          <div className="pointer-events-auto">{composer}</div>
         </div>
       </section>
     </div>
