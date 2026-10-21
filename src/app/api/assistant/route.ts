@@ -59,6 +59,7 @@ export async function POST(req: NextRequest) {
   const parsed = z
     .object({
       message: z.string().min(1).max(2000),
+      deep: z.boolean().optional(),
       history: z
         .array(z.object({ role: z.string(), content: z.string().max(4000) }))
         .max(40)
@@ -78,7 +79,7 @@ export async function POST(req: NextRequest) {
       }));
 
   const ctx = await buildContext();
-  const result = await assistantReply(history, ctx);
+  const result = await assistantReply(history, ctx, { deep: parsed.data.deep });
   await db.assistantMessage.create({ data: { role: "assistant", content: result.reply } });
   return NextResponse.json({ reply: result.reply, isDemo: result.isDemo });
 }

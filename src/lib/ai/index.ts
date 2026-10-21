@@ -612,7 +612,8 @@ function plainText(reply: string): string {
 
 export async function assistantReply(
   history: Array<{ role: string; content: string }>,
-  ctx: AssistantContext
+  ctx: AssistantContext,
+  opts: { deep?: boolean } = {}
 ): Promise<{ reply: string; isDemo: boolean }> {  const lastUser = [...history].reverse().find((m) => m.role === "user")?.content?.toLowerCase() || "";
 
   // Deterministic local intents (work in both modes; instant and data-grounded).
@@ -656,8 +657,11 @@ export async function assistantReply(
 
   const status = aiStatus();
   if (status.mode === "live") {
+    const deepNote = opts.deep
+      ? " Deep thinking is ON: work through the problem step by step, cross-check the reasoning against the workspace context, then give a short reasoning summary (2 to 4 short lines) before the final answer."
+      : "";
     const live = await liveChat<{ reply: string }>(
-      "You are the MY OS personal assistant for a Class 12 student. Use ONLY the provided workspace context. Never invent data. Be concise, specific and action-oriented. You may propose creating tasks, tests or plans but must ask for confirmation before creating anything. Reply in clean plain text only: never use markdown, asterisks, bold, headings or code fences. Keep it short — 2 to 4 sentences for simple answers, or a short numbered list for steps.",
+      "You are the MY OS personal assistant for a Class 12 student. Use ONLY the provided workspace context. Never invent data. Be concise, specific and action-oriented. You may propose creating tasks, tests or plans but must ask for confirmation before creating anything. Reply in clean plain text only: never use markdown, asterisks, bold, headings or code fences. Keep it short — 2 to 4 sentences for simple answers, or a short numbered list for steps." + deepNote,
       `Context: ${JSON.stringify(ctx)}\n\nConversation:\n${history.map((m) => `${m.role}: ${m.content}`).join("\n")}`,
       '{"reply":string}'
     );

@@ -216,6 +216,8 @@ export default function AssistantPage() {
   const [activeId, setActiveId] = useState("");
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [deep, setDeep] = useState(false);
+  const [pasteMode, setPasteMode] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -284,7 +286,7 @@ export default function AssistantPage() {
       const res = await fetch("/api/assistant", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: content, history }),
+        body: JSON.stringify({ message: content, history, deep }),
         signal: controller.signal,
       });
       const json = await res.json();
@@ -348,6 +350,28 @@ export default function AssistantPage() {
     void send(text);
   }
 
+  async function handlePasteText() {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (!text.trim()) {
+        toast("Your clipboard is empty.", "info");
+        return;
+      }
+      setInput((v) => (v ? `${v} ${text.trim()}` : text.trim()));
+      setPasteMode(true);
+    } catch {
+      toast("Clipboard access was blocked. Use Ctrl/Cmd + V instead.", "error");
+    }
+  }
+
+  function togglePaste() {
+    if (pasteMode) {
+      setPasteMode(false);
+      return;
+    }
+    void handlePasteText();
+  }
+
   const panelProps = {
     threads,
     activeId,
@@ -364,6 +388,10 @@ export default function AssistantPage() {
       onSubmit={submit}
       onStop={() => abortRef.current?.abort()}
       sending={sending}
+      deep={deep}
+      onToggleDeep={() => setDeep((v) => !v)}
+      pasteMode={pasteMode}
+      onTogglePaste={togglePaste}
     />
   );
 
@@ -459,7 +487,7 @@ export default function AssistantPage() {
 
         {/* Floating composer — messages scroll underneath it */}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-canvas via-canvas to-transparent pt-xl">
-          <div className="pointer-events-auto mx-auto w-full max-w-2xl px-[30px]">{composer}</div>
+          <div className="pointer-events-auto mx-auto w-full max-w-2xl px-[10px] lg:px-[30px]">{composer}</div>
         </div>
       </section>
     </div>

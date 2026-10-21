@@ -1,8 +1,9 @@
 "use client";
 
 import React from "react";
-import { ArrowUp, Square } from "lucide-react";
+import { ArrowUp, Brain, ClipboardPaste, Square } from "lucide-react";
 import { Button } from "@/components/ui";
+import { cn } from "@/lib/utils";
 import {
   PromptInput,
   PromptInputTextarea,
@@ -16,12 +17,20 @@ export default function AssistantPromptBar({
   onSubmit,
   onStop,
   sending,
+  deep,
+  onToggleDeep,
+  pasteMode,
+  onTogglePaste,
 }: {
   value: string;
   onChange: (value: string) => void;
   onSubmit: () => void;
   onStop: () => void;
   sending: boolean;
+  deep: boolean;
+  onToggleDeep: () => void;
+  pasteMode: boolean;
+  onTogglePaste: () => void;
 }) {
   return (
     <PromptInput
@@ -33,7 +42,41 @@ export default function AssistantPromptBar({
       isLoading={sending}
     >
       <PromptInputTextarea placeholder="Ask anything…" className="min-h-[34px] px-sm" />
-      <PromptInputActions className="justify-end px-xs pt-xs">
+      <PromptInputActions className="justify-between gap-xs px-xs pt-xs">
+        <div className="flex items-center gap-xxs">
+          <PromptInputAction tooltip="Deep thinking">
+            <button
+              type="button"
+              onClick={onToggleDeep}
+              aria-pressed={deep}
+              aria-label="Deep thinking"
+              className={cn(
+                "flex h-7 w-7 items-center justify-center rounded-full border transition-colors",
+                deep
+                  ? "border-sky-300 bg-sky-50 text-sky-700 ring-2 ring-sky-200 dark:border-sky-500/50 dark:bg-sky-500/10 dark:text-sky-300 dark:ring-sky-500/40"
+                  : "border-transparent text-muted hover:bg-field hover:text-ink"
+              )}
+            >
+              <Brain size={14} />
+            </button>
+          </PromptInputAction>
+          <PromptInputAction tooltip="Paste text">
+            <button
+              type="button"
+              onClick={onTogglePaste}
+              aria-pressed={pasteMode}
+              aria-label="Paste text"
+              className={cn(
+                "flex h-7 w-7 items-center justify-center rounded-full border transition-colors",
+                pasteMode
+                  ? "border-sky-300 bg-sky-50 text-sky-700 ring-2 ring-sky-200 dark:border-sky-500/50 dark:bg-sky-500/10 dark:text-sky-300 dark:ring-sky-500/40"
+                  : "border-transparent text-muted hover:bg-field hover:text-ink"
+              )}
+            >
+              <ClipboardPaste size={14} />
+            </button>
+          </PromptInputAction>
+        </div>
         <PromptInputAction tooltip={sending ? "Stop" : "Send"}>
           <Button
             type="button"
