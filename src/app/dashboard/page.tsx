@@ -1,12 +1,13 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useApi, Card, Progress, Badge, Spinner, ErrorState, Stat } from "@/components/ui";
-import { greetingForHour, relativeDay, pct, minutesToHm, daysUntil, quoteForDay } from "@/lib/utils";
+import { greetingForHour, relativeDay, pct, minutesToHm, daysUntil, quoteForDay, notifyTasksChanged } from "@/lib/utils";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
-import { ArrowRight, FlaskConical, Trophy, Target, Sparkles, TrendingUp, Hourglass, Quote } from "lucide-react";
+import { ArrowRight, FlaskConical, Trophy, Target, Sparkles, TrendingUp, Hourglass, Quote, ListTodo } from "lucide-react";
 import StudyTimer from "@/components/study-timer";
+import SpringCheck from "@/components/reactbits/SpringCheck";
 
 function boardExamDateISO(): string {
   const now = new Date();
@@ -34,6 +35,7 @@ interface Dash {
   overall: { chapters: number; mastered: number; completion: number };
   recentScores: Array<{ title: string; subject: string; score: number; max: number; pct: number; date: string }>;
   performance: Array<{ idx: number; pct: number; subject: string; date: string }>;
+  pendingTasks: Array<{ id: string; title: string; priority: string; category: string; dueAt: string | null }>;
   weeklyTargets: { weekStart: string; weekEnd: string; targets: WeeklyTarget[] };
   tools: Array<{ title: string; reason: string; href: string }>;
   weakChapters: Array<{ id: string; name: string; subject: string; confidence: number; lastTestScore: number | null }>;
@@ -43,10 +45,26 @@ interface Dash {
 
 export default function DashboardPage() {
   const { data, loading, error, reload } = useApi<Dash>("/api/dashboard");
+  const [quickTasks, setQuickTasks] = useState<Dash["pendingTasks"]>([]);
+
+  useEffect(() => {
+    if (data) setQuickTasks(data.pendingTasks ?? []);
+  }, [data]);
 
   if (loading) return <Spinner label="Loading your command center…" />;
   if (error) return <ErrorState message={error} onRetry={reload} />;
   if (!data) return null;
+
+  async function completeQuickTask(id: string) {
+    setQuickTasks((prev) => prev.filter((t) => t.id !== id));
+    await fetch(`/api/tasks/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "DONE" }),
+    }).catch(() => null);
+    notifyTasksChanged();
+    reload();
+  }
 
   const firstName = (data.profile?.name || "Gurmeet").split(" ")[0];
   const greeting = greetingForHour(new Date().getHours());
@@ -107,6 +125,45 @@ export default function DashboardPage() {
         </Card>
       </div>
 
+      {/* Quick tasks — tick straight from home */}
+      <Card className="mb-md">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-xs">
+            <ListTodo size={16} className="text-muted" />
+            <h2 className="text-title text-ink">Quick tasks</h2>
+          </div>
+          <Link href="/tasks" className="text-caption text-muted underline hover:text-ink">
+            All tasks
+          </Link>
+        </div>
+        {quickTasks.length === 0 ? (
+          <p className="mt-sm text-body-sm text-muted">Nothing due today. Add a task from the Tasks page.</p>
+        ) : (
+          <ul className="mt-sm flex flex-col gap-xxs">
+            {quickTasks.slice(0, 6).map((t) => (
+              <li key={t.id}>
+                <SpringCheck
+                  label={t.title}
+                  checked={false}
+                  onChange={(checked) => {
+                    if (checked) completeQuickTask(t.id);
+                  }}
+                  color="var(--chart-ink)"
+                  fillColor="var(--chart-ink)"
+                  checkColor="var(--chart-tip-bg)"
+                  boxSize={18}
+                  boxRadius={6}
+                  fontSize={12}
+                  strike="left"
+                  ariaLabel={`Mark ${t.title} done`}
+                  className="w-full"
+                />
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
       {/* Performance graph */}
       <Card className="mb-md">
         <div className="flex items-center justify-between">
@@ -129,7 +186,7 @@ export default function DashboardPage() {
             </div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={data.performance} margin={{ top: 4, right: 4, left: -18, bottom: 0 }}>
+              <AreaChart data={data.performance} margin={{ top: 12, right: 10, left: 0, bottom: 4 }}>
                 <defs>
                   <linearGradient id="perf" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="var(--chart-ink)" stopOpacity={0.16} />
@@ -137,8 +194,16 @@ export default function DashboardPage() {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
-                <XAxis dataKey="idx" tick={{ fontSize: 10, fill: "var(--chart-axis)" }} axisLine={false} tickLine={false} />
-                <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: "var(--chart-axis)" }} width={34} axisLine={false} tickLine={false} />
+                <XAxis dataKey="idx" tick={{ fontSize: 10, fill: "var(--chart-axis)" }} axisLine={false} tickLine={false} tickMargin={4} />
+                <YAxis
+                  domain={[0, 100]}
+                  ticks={[0, 25, 50, 75, 100]}
+                  tick={{ fontSize: 10, fill: "var(--chart-axis)" }}
+                  width={34}
+                  axisLine={false}
+                  tickLine={false}
+                  tickMargin={4}
+                />
                 <Tooltip
                   contentStyle={{ borderRadius: 16, border: "1px solid var(--chart-tip-border)", background: "var(--chart-tip-bg)", color: "var(--chart-ink)", fontSize: 12 }}
                   labelFormatter={(l) => `Attempt ${l}`}

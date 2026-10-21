@@ -116,7 +116,7 @@ interface SendGlyphProps {
 const ARROW_UP = [12, 4.5, 18.5, 11, 14.25, 11, 14.25, 19.5, 9.75, 19.5, 9.75, 11, 5.5, 11];
 const SQUARE = [12, 6, 18, 6, 18, 12, 18, 18, 6, 18, 6, 12, 6, 6];
 const EASE_IN_OUT: [number, number, number, number] = [0.77, 0, 0.175, 1];
-const LINE = 22;
+const LINE = 20;
 const EDGE = 11;
 
 const DEFAULT_SOURCES: PromptBarSource[] = [
@@ -561,7 +561,7 @@ const PromptBar: React.FC<PromptBarProps> = ({
   return (
     <div
       ref={rootRef}
-      className={`group relative text-[14px] leading-[22px] [width:min(var(--pb-w),100%)] [color:var(--pb-ink)]${className ? ` ${className}` : ''}`}
+      className={`group relative text-[13px] leading-[20px] [width:min(var(--pb-w),100%)] [color:var(--pb-ink)]${className ? ` ${className}` : ''}`}
       data-busy={busy ? '' : undefined}
       data-max={maxed ? '' : undefined}
       style={
@@ -588,7 +588,7 @@ const PromptBar: React.FC<PromptBarProps> = ({
         >
           {open === 'effort' ? (
             <>
-              <div className="flex items-center gap-2 text-[13px] leading-[18px]">
+              <div className="flex items-center gap-2 text-[12px] leading-[17px]">
                 <span className="[color:color-mix(in_srgb,var(--pb-ink)_55%,transparent)]">Effort</span>
                 <span className="font-medium">{level}</span>
                 <span
@@ -598,7 +598,7 @@ const PromptBar: React.FC<PromptBarProps> = ({
                   <HugeiconsIcon icon={HelpCircleIcon} size={14} strokeWidth={1.8} />
                 </span>
               </div>
-              <div className="mt-3 flex justify-between text-[12px] leading-4 [color:color-mix(in_srgb,var(--pb-ink)_55%,transparent)]">
+              <div className="mt-3 flex justify-between text-[11px] leading-4 [color:color-mix(in_srgb,var(--pb-ink)_55%,transparent)]">
                 <span>Faster</span>
                 <span>Smarter</span>
               </div>
@@ -664,15 +664,15 @@ const PromptBar: React.FC<PromptBarProps> = ({
                       {renderIcon(row.icon, 15)}
                     </span>
                   ) : null}
-                  <span className="flex-none text-[13px] font-medium">{row.name}</span>
+                  <span className="flex-none text-[12px] font-medium">{row.name}</span>
                   {row.description ? (
-                    <span className="min-w-0 flex-auto truncate text-[12px] [color:color-mix(in_srgb,var(--pb-ink)_55%,transparent)]">
+                    <span className="min-w-0 flex-auto truncate text-[11px] [color:color-mix(in_srgb,var(--pb-ink)_55%,transparent)]">
                       {row.description}
                     </span>
                   ) : null}
                   {open === 'model' ? (
                     <>
-                      <span className="ml-auto flex-none text-[11px] [color:color-mix(in_srgb,var(--pb-ink)_55%,transparent)]">
+                      <span className="ml-auto flex-none text-[10px] [color:color-mix(in_srgb,var(--pb-ink)_55%,transparent)]">
                         {row.tag}
                       </span>
                       <span
@@ -686,7 +686,7 @@ const PromptBar: React.FC<PromptBarProps> = ({
                 </button>
               ))}
               {list.length === 0 ? (
-                <div className="flex h-9 items-center px-2 text-[12px] [color:color-mix(in_srgb,var(--pb-ink)_55%,transparent)]">
+                <div className="flex h-9 items-center px-2 text-[11px] [color:color-mix(in_srgb,var(--pb-ink)_55%,transparent)]">
                   No matches for “{query}”
                 </div>
               ) : null}
@@ -714,7 +714,7 @@ const PromptBar: React.FC<PromptBarProps> = ({
             {attachments.map((file, i) => (
               <span
                 key={`${file}-${i}`}
-                className="inline-flex h-[26px] items-center gap-1.5 rounded-lg pr-1 pl-2 text-[12px] [animation:prompt-bar-pop_200ms_cubic-bezier(0.23,1,0.32,1)_both] [background:color-mix(in_srgb,var(--pb-ink)_8%,transparent)] motion-reduce:[animation:none]"
+                className="inline-flex h-[26px] items-center gap-1.5 rounded-lg pr-1 pl-2 text-[11px] [animation:prompt-bar-pop_200ms_cubic-bezier(0.23,1,0.32,1)_both] [background:color-mix(in_srgb,var(--pb-ink)_8%,transparent)] motion-reduce:[animation:none]"
               >
                 <HugeiconsIcon icon={File02Icon} size={12} strokeWidth={2} />
                 <span className="max-w-[144px] truncate">{file}</span>
@@ -733,7 +733,7 @@ const PromptBar: React.FC<PromptBarProps> = ({
 
         <textarea
           ref={inputRef}
-          className="block w-full resize-none border-0 bg-transparent p-0 text-[14px] leading-[22px] text-inherit outline-none [font:inherit] [overflow-wrap:anywhere] placeholder:[color:color-mix(in_srgb,var(--pb-ink)_45%,transparent)] [@media(pointer:coarse)]:text-[16px]"
+          className="block w-full resize-none border-0 bg-transparent p-0 text-[13px] leading-[20px] text-inherit outline-none [font:inherit] [overflow-wrap:anywhere] placeholder:[color:color-mix(in_srgb,var(--pb-ink)_45%,transparent)] [@media(pointer:coarse)]:text-[16px]"
           rows={1}
           value={draft}
           placeholder={listening ? 'Listening…' : placeholder}
@@ -771,7 +771,7 @@ const PromptBar: React.FC<PromptBarProps> = ({
           {models.length > 0 ? (
             <button
               type="button"
-              className="inline-flex h-7 flex-none cursor-pointer touch-manipulation items-center gap-1 rounded-lg border-0 bg-transparent px-2 text-[12px] font-medium outline-none select-none [color:color-mix(in_srgb,var(--pb-ink)_70%,transparent)] [font:inherit] [-webkit-tap-highlight-color:transparent] [transition:background-color_150ms_ease,color_150ms_ease] data-[on]:[background:color-mix(in_srgb,var(--pb-ink)_8%,transparent)] data-[on]:[color:var(--pb-ink)] [@media(hover:hover)_and_(pointer:fine)]:hover:[background:color-mix(in_srgb,var(--pb-ink)_8%,transparent)] [@media(hover:hover)_and_(pointer:fine)]:hover:[color:var(--pb-ink)] data-[max]:[color:var(--pb-spark)]! "
+              className="inline-flex h-7 flex-none cursor-pointer touch-manipulation items-center gap-1 rounded-lg border-0 bg-transparent px-2 text-[11px] font-medium outline-none select-none [color:color-mix(in_srgb,var(--pb-ink)_70%,transparent)] [font:inherit] [-webkit-tap-highlight-color:transparent] [transition:background-color_150ms_ease,color_150ms_ease] data-[on]:[background:color-mix(in_srgb,var(--pb-ink)_8%,transparent)] data-[on]:[color:var(--pb-ink)] [@media(hover:hover)_and_(pointer:fine)]:hover:[background:color-mix(in_srgb,var(--pb-ink)_8%,transparent)] [@media(hover:hover)_and_(pointer:fine)]:hover:[color:var(--pb-ink)] data-[max]:[color:var(--pb-spark)]! "
               aria-label="Choose model"
               aria-expanded={modelOpen}
               data-on={modelOpen ? '' : undefined}
@@ -791,7 +791,7 @@ const PromptBar: React.FC<PromptBarProps> = ({
           {efforts.length > 0 ? (
             <button
               type="button"
-              className="inline-flex h-7 flex-none cursor-pointer touch-manipulation items-center gap-1 rounded-lg border-0 bg-transparent px-2 text-[12px] font-medium outline-none select-none [color:color-mix(in_srgb,var(--pb-ink)_70%,transparent)] [font:inherit] [-webkit-tap-highlight-color:transparent] [transition:background-color_150ms_ease,color_150ms_ease] data-[on]:[background:color-mix(in_srgb,var(--pb-ink)_8%,transparent)] data-[on]:[color:var(--pb-ink)] [@media(hover:hover)_and_(pointer:fine)]:hover:[background:color-mix(in_srgb,var(--pb-ink)_8%,transparent)] [@media(hover:hover)_and_(pointer:fine)]:hover:[color:var(--pb-ink)] data-[max]:[color:var(--pb-spark)]! "
+              className="inline-flex h-7 flex-none cursor-pointer touch-manipulation items-center gap-1 rounded-lg border-0 bg-transparent px-2 text-[11px] font-medium outline-none select-none [color:color-mix(in_srgb,var(--pb-ink)_70%,transparent)] [font:inherit] [-webkit-tap-highlight-color:transparent] [transition:background-color_150ms_ease,color_150ms_ease] data-[on]:[background:color-mix(in_srgb,var(--pb-ink)_8%,transparent)] data-[on]:[color:var(--pb-ink)] [@media(hover:hover)_and_(pointer:fine)]:hover:[background:color-mix(in_srgb,var(--pb-ink)_8%,transparent)] [@media(hover:hover)_and_(pointer:fine)]:hover:[color:var(--pb-ink)] data-[max]:[color:var(--pb-spark)]! "
               aria-label="Choose effort"
               aria-expanded={effortOpen}
               data-on={effortOpen ? '' : undefined}

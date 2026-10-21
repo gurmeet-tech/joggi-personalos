@@ -2,6 +2,13 @@ export function cn(...parts: Array<string | false | null | undefined>): string {
   return parts.filter(Boolean).join(" ");
 }
 
+/** Fired after a task is created, completed or deleted so every mounted view can refresh. */
+export const TASKS_CHANGED_EVENT = "myos:tasks-changed";
+
+export function notifyTasksChanged(): void {
+  if (typeof window !== "undefined") window.dispatchEvent(new Event(TASKS_CHANGED_EVENT));
+}
+
 export function todayISO(): string {
   return new Date().toISOString().slice(0, 10);
 }

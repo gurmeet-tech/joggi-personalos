@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useApi, Card, Button, Badge, Spinner, ErrorState, Field, Input, Select, Modal, useToast, EmptyState, Segmented, Progress } from "@/components/ui";
-import { formatDate, todayISO } from "@/lib/utils";
+import { formatDate, todayISO, notifyTasksChanged } from "@/lib/utils";
 import { Plus, Trash2, Target, ListChecks } from "lucide-react";
 import SpringCheck from "@/components/reactbits/SpringCheck";
 
@@ -53,6 +53,7 @@ export default function TasksPage() {
     toast("Task added.", "success");
     setShowTask(false);
     setTaskForm({ title: "", category: "ACADEMICS", priority: "MEDIUM", dueAt: todayISO() });
+    notifyTasksChanged();
     reload();
   }
 
@@ -62,11 +63,13 @@ export default function TasksPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: done ? "DONE" : "TODO" }),
     }).catch(() => null);
+    notifyTasksChanged();
     reload();
   }
 
   async function deleteTask(id: string) {
     await fetch(`/api/tasks/${id}`, { method: "DELETE" }).catch(() => null);
+    notifyTasksChanged();
     reload();
   }
 

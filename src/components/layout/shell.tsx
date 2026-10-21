@@ -24,9 +24,10 @@ import {
   X,
   User,
 } from "lucide-react";
-import { cn, greetingForHour, initials } from "@/lib/utils";
+import { cn, greetingForHour, initials, TASKS_CHANGED_EVENT, notifyTasksChanged } from "@/lib/utils";
 import { Badge } from "@/components/ui";
 import ThemeToggle from "@/components/theme-toggle";
+import SpringCheck from "@/components/reactbits/SpringCheck";
 
 const NAV_GROUPS: Array<{ label: string; items: Array<{ href: string; label: string; icon: React.ElementType }> }> = [
   {
@@ -70,7 +71,7 @@ const NAV_GROUPS: Array<{ label: string; items: Array<{ href: string; label: str
 function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   return (
-    <nav className="flex flex-col gap-lg overflow-y-auto px-sm py-md" aria-label="Primary">
+    <nav className="no-scrollbar flex flex-col gap-lg overflow-y-auto px-sm py-md" aria-label="Primary">
       {NAV_GROUPS.map((group) => (
         <div key={group.label}>
           <div className="label-cap mb-xs px-md">{group.label}</div>
@@ -143,7 +144,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [notifOpen, setNotifOpen] = useState(false);
   const [profile, setProfile] = useState<{ name: string; onboarded: boolean }>({ name: "Student", onboarded: false });
   const [dueCount, setDueCount] = useState(0);
-  const [todo, setTodo] = useState<Array<{ kind: string; label: string; href: string }>>([]);
+  const [todo, setTodo] = useState<Array<{ kind: string; label: string; href: string; taskId?: string }>>([]);
   const pathname = usePathname();
   const router = useRouter();
   const isExam = pathname.startsWith("/exam/active");
@@ -156,19 +157,35 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         if (!p.onboarded) router.replace("/onboarding");
       })
       .catch(() => {});
-    fetch("/api/dashboard")
-      .then((r) => r.json())
-      .then((d) => {
-        const items: Array<{ kind: string; label: string; href: string }> = [];
-        (d.overdueTasks || []).forEach((t: { title: string }) => items.push({ kind: "Overdue task", label: t.title, href: "/tasks" }));
-        (d.revisionDue || []).forEach((r: { title: string; kind: string }) => items.push({ kind: r.kind === "mistake" ? "Mistake review" : "Revision due", label: r.title, href: r.kind === "mistake" ? "/mistakes" : "/revision" }));
-        (d.leadsDue || []).forEach((l: { name: string }) => items.push({ kind: "Freelance follow-up", label: l.name, href: "/freelance" }));
-        (d.pendingTasks || []).slice(0, 3).forEach((t: { title: string }) => items.push({ kind: "To do today", label: t.title, href: "/tasks" }));
-        setTodo(items.slice(0, 8));
-        setDueCount(items.length);
-      })
-      .catch(() => {});
+    const loadDashboard = () =>
+      fetch("/api/dashboard")
+        .then((r) => r.json())
+        .then((d) => {
+          const items: Array<{ kind: string; label: string; href: string; taskId?: string }> = [];
+          (d.overdueTasks || []).forEach((t: { id: string; title: string }) => items.push({ kind: "Overdue task", label: t.title, href: "/tasks", taskId: t.id }));
+          (d.revisionDue || []).forEach((r: { title: string; kind: string }) => items.push({ kind: r.kind === "mistake" ? "Mistake review" : "Revision due", label: r.title, href: r.kind === "mistake" ? "/mistakes" : "/revision" }));
+          (d.leadsDue || []).forEach((l: { name: string }) => items.push({ kind: "Freelance follow-up", label: l.name, href: "/freelance" }));
+          (d.pendingTasks || []).slice(0, 3).forEach((t: { id: string; title: string }) => items.push({ kind: "To do today", label: t.title, href: "/tasks", taskId: t.id }));
+          setTodo(items.slice(0, 8));
+          setDueCount(items.length);
+        })
+        .catch(() => {});
+
+    loadDashboard();
+    window.addEventListener(TASKS_CHANGED_EVENT, loadDashboard);
+    return () => window.removeEventListener(TASKS_CHANGED_EVENT, loadDashboard);
   }, [pathname, router]);
+
+  async function completeTask(taskId: string) {
+    setTodo((prev) => prev.filter((t) => t.taskId !== taskId));
+    setDueCount((c) => Math.max(0, c - 1));
+    await fetch(`/api/tasks/${taskId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "DONE" }),
+    }).catch(() => null);
+    notifyTasksChanged();
+  }
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -191,7 +208,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-canvas">
       {/* Desktop sidebar — floating canvas-soft column per design system */}
-      <aside className="fixed inset-y-lg left-lg z-30 hidden w-64 flex-col rounded-md bg-canvas-soft lg:flex">
+      <aside className="fixed inset-y-xl left-lg z-30 hidden w-64 flex-col rounded-md bg-canvas-soft lg:flex">
         <Link href="/dashboard" className="flex items-center gap-sm px-md pt-md">
           <span className="flex h-8 w-8 items-center justify-center rounded-sm bg-ink text-label text-on-primary" style={{ borderRadius: "30%" }}>
             OS
@@ -212,7 +229,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       {/* Mobile drawer */}
       {mobileOpen && (
         <div className="fixed inset-0 z-50 bg-ink/30 lg:hidden" onMouseDown={(e) => e.target === e.currentTarget && setMobileOpen(false)}>
-          <aside className="absolute inset-y-0 left-0 w-72 overflow-y-auto rounded-r-md bg-canvas-soft">
+          <aside className="no-scrollbar absolute inset-y-0 left-0 w-72 overflow-y-auto rounded-r-md bg-canvas-soft">
             <div className="flex items-center justify-between px-md pt-md">
               <span className="text-title text-ink">MY OS</span>
               <button onClick={() => setMobileOpen(false)} aria-label="Close menu" className="rounded-full p-xs text-muted hover:bg-field">
@@ -269,22 +286,46 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                     {todo.length === 0 ? (
                       <p className="px-md py-lg text-center text-body-sm text-muted">Nothing overdue. Your revision queue is empty. Go lock in a chapter.</p>
                     ) : (
-                      <ul className="max-h-[60vh] overflow-y-auto py-xs">
+                      <ul className="no-scrollbar max-h-[60vh] overflow-y-auto py-xs">
                         {todo.map((t, i) => (
                           <li key={i}>
-                            <button
-                              className="flex w-full items-start gap-sm px-md py-sm text-left hover:bg-canvas-soft"
-                              onClick={() => {
-                                setNotifOpen(false);
-                                router.push(t.href);
-                              }}
-                            >
-                              <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ink" />
-                              <span className="min-w-0">
-                                <span className="block text-caption uppercase tracking-wide text-faint">{t.kind}</span>
-                                <span className="block truncate text-body-sm text-ink">{t.label}</span>
-                              </span>
-                            </button>
+                            {t.taskId ? (
+                              <SpringCheck
+                                label={
+                                  <span className="min-w-0">
+                                    <span className="block text-caption uppercase tracking-wide text-faint">{t.kind}</span>
+                                    <span className="block truncate text-body-sm text-ink">{t.label}</span>
+                                  </span>
+                                }
+                                checked={false}
+                                onChange={(checked) => {
+                                  if (checked) completeTask(t.taskId!);
+                                }}
+                                color="var(--chart-ink)"
+                                fillColor="var(--chart-ink)"
+                                checkColor="var(--chart-tip-bg)"
+                                boxSize={16}
+                                boxRadius={5}
+                                fontSize={11}
+                                strike="none"
+                                className="w-full px-md py-xs hover:bg-canvas-soft"
+                                ariaLabel={`Mark ${t.label} done`}
+                              />
+                            ) : (
+                              <button
+                                className="flex w-full items-start gap-sm px-md py-sm text-left hover:bg-canvas-soft"
+                                onClick={() => {
+                                  setNotifOpen(false);
+                                  router.push(t.href);
+                                }}
+                              >
+                                <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-ink" />
+                                <span className="min-w-0">
+                                  <span className="block text-caption uppercase tracking-wide text-faint">{t.kind}</span>
+                                  <span className="block truncate text-body-sm text-ink">{t.label}</span>
+                                </span>
+                              </button>
+                            )}
                           </li>
                         ))}
                       </ul>
@@ -309,6 +350,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           {[
             { href: "/dashboard", label: "Home", icon: LayoutGrid },
             { href: "/exam-studio", label: "Exams", icon: FlaskConical },
+            { href: "/assistant", label: "AI", icon: Sparkles },
             { href: "/tasks", label: "Tasks", icon: ListTodo },
             { href: "/english", label: "Speak", icon: Mic },
             { href: "/analytics", label: "Stats", icon: BarChart3 },
@@ -316,7 +358,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             const active = pathname === i.href || (i.href !== "/dashboard" && pathname.startsWith(i.href));
             const Icon = i.icon;
             return (
-              <Link key={i.href} href={i.href} className={cn("flex flex-col items-center gap-xxs rounded-full px-sm py-xs text-caption", active ? "text-ink" : "text-faint")}>
+              <Link key={i.href} href={i.href} className={cn("flex flex-col items-center gap-xxs rounded-full px-xs py-xs text-caption", active ? "text-ink" : "text-faint")}>
                 <Icon size={18} strokeWidth={active ? 2.2 : 1.6} />
                 {i.label}
               </Link>

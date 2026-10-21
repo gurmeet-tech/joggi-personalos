@@ -116,7 +116,7 @@ export default function MistakesPage() {
         />
       )}
 
-      <div className="mt-md flex flex-col gap-md">
+      <div className="mt-xl flex flex-col gap-md">
         {data?.map((m) => (
           <Card key={m.id}>
             <div className="flex flex-wrap items-center justify-between gap-sm">

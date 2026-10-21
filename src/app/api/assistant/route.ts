@@ -56,13 +56,29 @@ async function buildContext(): Promise<AssistantContext> {
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
-  const parsed = z.object({ message: z.string().min(1).max(2000) }).safeParse(body);
+  const parsed = z
+    .object({
+      message: z.string().min(1).max(2000),
+      history: z
+        .array(z.object({ role: z.string(), content: z.string().max(4000) }))
+        .max(40)
+        .optional(),
+    })
+    .safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "Message is required." }, { status: 400 });
 
   await db.assistantMessage.create({ data: { role: "user", content: parsed.data.message } });
-  const history = await db.assistantMessage.findMany({ orderBy: { createdAt: "asc" }, take: 40 });
+
+  // Each chat sends its own transcript so separate threads never share context.
+  const history = parsed.data.history?.length
+    ? [...parsed.data.history, { role: "user", content: parsed.data.message }]
+    : (await db.assistantMessage.findMany({ orderBy: { createdAt: "asc" }, take: 40 })).map((m) => ({
+        role: m.role,
+        content: m.content,
+      }));
+
   const ctx = await buildContext();
-  const result = await assistantReply(history.map((m) => ({ role: m.role, content: m.content })), ctx);
+  const result = await assistantReply(history, ctx);
   await db.assistantMessage.create({ data: { role: "assistant", content: result.reply } });
   return NextResponse.json({ reply: result.reply, isDemo: result.isDemo });
 }

@@ -79,9 +79,9 @@ export default function AnalyticsPage() {
           <p className="text-caption text-muted">Minutes per day</p>
           <div className="mt-md h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={data.studyByDay}>
+              <AreaChart data={data.studyByDay} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
-                <XAxis dataKey="date" tick={{ fontSize: 10, fill: "var(--chart-axis)" }} tickFormatter={(v) => v.slice(5)} />
+                <XAxis dataKey="date" tick={{ fontSize: 10, fill: "var(--chart-axis)" }} tickFormatter={(v) => v.slice(5)} tickMargin={4} />
                 <YAxis tick={{ fontSize: 10, fill: "var(--chart-axis)" }} width={32} />
                 <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid var(--chart-tip-border)", background: "var(--chart-tip-bg)", color: "var(--chart-ink)", fontSize: 12 }} />
                 <Area type="monotone" dataKey="planned" stroke="var(--chart-axis)" fill="var(--chart-soft)" name="Planned" />
@@ -99,10 +99,10 @@ export default function AnalyticsPage() {
               <EmptyState title="No exams yet" description="Generate and submit a paper to see your trend." />
             ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={data.mockHistory.map((m, i) => ({ ...m, idx: i + 1 }))}>
+                <LineChart data={data.mockHistory.map((m, i) => ({ ...m, idx: i + 1 }))} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
-                  <XAxis dataKey="idx" tick={{ fontSize: 10, fill: "var(--chart-axis)" }} />
-                  <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: "var(--chart-axis)" }} width={32} />
+                  <XAxis dataKey="idx" tick={{ fontSize: 10, fill: "var(--chart-axis)" }} tickMargin={4} />
+                  <YAxis domain={[0, 100]} ticks={[0, 25, 50, 75, 100]} tick={{ fontSize: 10, fill: "var(--chart-axis)" }} width={36} tickMargin={4} />
                   <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid var(--chart-tip-border)", background: "var(--chart-tip-bg)", color: "var(--chart-ink)", fontSize: 12 }} labelFormatter={(l) => `Attempt ${l}`} />
                   <Line type="monotone" dataKey="pct" stroke="var(--chart-ink)" strokeWidth={2} dot={{ r: 3, fill: "var(--chart-ink)" }} name="Score %" />
                 </LineChart>
@@ -118,7 +118,7 @@ export default function AnalyticsPage() {
               <EmptyState title="No sessions logged" description="Log study sessions to attribute time to subjects." />
             ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data.studyBySubject} layout="vertical" margin={{ left: 20 }}>
+                <BarChart data={data.studyBySubject} layout="vertical" margin={{ top: 8, right: 8, left: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" horizontal={false} />
                   <XAxis type="number" tick={{ fontSize: 10, fill: "var(--chart-axis)" }} />
                   <YAxis type="category" dataKey="subject" tick={{ fontSize: 10, fill: "var(--chart-axis)" }} width={90} />
@@ -134,10 +134,10 @@ export default function AnalyticsPage() {
           <h3 className="text-title text-ink">Average score by subject</h3>
           <div className="mt-md h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data.scoreBySubject.map((s) => ({ ...s, avgScore: s.avgScore ?? 0 }))}>
+              <BarChart data={data.scoreBySubject.map((s) => ({ ...s, avgScore: s.avgScore ?? 0 }))} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
-                <XAxis dataKey="subject" tick={{ fontSize: 10, fill: "var(--chart-axis)" }} />
-                <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: "var(--chart-axis)" }} width={32} />
+                <XAxis dataKey="subject" tick={{ fontSize: 10, fill: "var(--chart-axis)" }} tickMargin={4} />
+                <YAxis domain={[0, 100]} ticks={[0, 25, 50, 75, 100]} tick={{ fontSize: 10, fill: "var(--chart-axis)" }} width={36} tickMargin={4} />
                 <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid var(--chart-tip-border)", background: "var(--chart-tip-bg)", color: "var(--chart-ink)", fontSize: 12 }} />
                 <Bar dataKey="avgScore" fill="#0066ff" radius={[8, 8, 0, 0]} name="Avg %" />
               </BarChart>
@@ -212,10 +212,10 @@ export default function AnalyticsPage() {
               <EmptyState title="No English sessions" description="Record a speaking practice to build this chart." />
             ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={data.englishTrend.map((e, i) => ({ ...e, idx: i + 1 }))}>
+                <LineChart data={data.englishTrend.map((e, i) => ({ ...e, idx: i + 1 }))} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
-                  <XAxis dataKey="idx" tick={{ fontSize: 10, fill: "var(--chart-axis)" }} />
-                  <YAxis tick={{ fontSize: 10, fill: "var(--chart-axis)" }} width={32} />
+                  <XAxis dataKey="idx" tick={{ fontSize: 10, fill: "var(--chart-axis)" }} tickMargin={4} />
+                  <YAxis tick={{ fontSize: 10, fill: "var(--chart-axis)" }} width={36} tickMargin={4} />
                   <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid var(--chart-tip-border)", background: "var(--chart-tip-bg)", color: "var(--chart-ink)", fontSize: 12 }} />
                   <Line type="monotone" dataKey="wpm" stroke="var(--chart-ink)" strokeWidth={2} name="WPM" />
                   <Line type="monotone" dataKey="fillers" stroke="#0066ff" strokeWidth={2} name="Fillers" />
@@ -235,7 +235,7 @@ export default function AnalyticsPage() {
               <EmptyState title="No leads yet" description="Add lead pipeline data in the Freelance CRM." />
             ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data.freelance.funnel} layout="vertical" margin={{ left: 20 }}>
+                <BarChart data={data.freelance.funnel} layout="vertical" margin={{ top: 8, right: 8, left: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" horizontal={false} />
                   <XAxis type="number" allowDecimals={false} tick={{ fontSize: 10, fill: "var(--chart-axis)" }} />
                   <YAxis type="category" dataKey="stage" tick={{ fontSize: 9, fill: "var(--chart-axis)" }} width={80} />
