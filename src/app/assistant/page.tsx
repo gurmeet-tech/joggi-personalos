@@ -3,7 +3,15 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useApi, useToast } from "@/components/ui";
 import { greetingForHour } from "@/lib/utils";
-import { Sparkles, Plus, History, Trash2, MessageSquare } from "lucide-react";
+import {
+  Sparkles,
+  Plus,
+  Trash2,
+  MessageSquare,
+  MoreHorizontal,
+  Search,
+  X,
+} from "lucide-react";
 import PromptBar from "@/components/reactbits/PromptBar";
 import LatticeLoader from "@/components/reactbits/LatticeLoader";
 
@@ -41,6 +49,9 @@ const SUGGESTIONS = [
   "Review my weak chapters",
 ];
 
+const isDesktop = () =>
+  typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches;
+
 function loadThreads(): Thread[] {
   try {
     const raw = localStorage.getItem(STORE_KEY);
@@ -60,13 +71,141 @@ function saveThreads(threads: Thread[]) {
   }
 }
 
+function updatedLabel(ts: number): string {
+  const d = new Date(ts);
+  const now = new Date();
+  const sameDay =
+    d.getDate() === now.getDate() &&
+    d.getMonth() === now.getMonth() &&
+    d.getFullYear() === now.getFullYear();
+  if (sameDay) return d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+  return d.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+}
+
+interface HistoryPanelProps {
+  threads: Thread[];
+  activeId: string;
+  onNew: () => void;
+  onOpen: (id: string) => void;
+  onDelete: (id: string) => void;
+  onClear: () => void;
+  onClose?: () => void;
+}
+
+function HistoryPanel({
+  threads,
+  activeId,
+  onNew,
+  onOpen,
+  onDelete,
+  onClear,
+  onClose,
+}: HistoryPanelProps) {
+  const [query, setQuery] = useState("");
+  const previous = threads
+    .filter((t) => t.messages.length > 0)
+    .filter((t) => t.title.toLowerCase().includes(query.trim().toLowerCase()))
+    .sort((a, b) => b.updatedAt - a.updatedAt);
+
+  return (
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="flex items-center justify-between px-sm pt-sm">
+        <div className="flex items-center gap-xs text-body-sm text-ink">
+          <Sparkles size={14} />
+          <span className="font-medium">Assistant</span>
+        </div>
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="rounded-full p-xs text-muted transition-colors hover:bg-field hover:text-ink"
+            aria-label="Close chat history"
+          >
+            <X size={15} />
+          </button>
+        )}
+      </div>
+
+      <div className="px-sm pt-sm">
+        <button
+          onClick={onNew}
+          className="flex w-full items-center justify-center gap-xxs rounded-sm bg-ink px-sm py-xs text-caption text-on-primary transition-opacity hover:opacity-90"
+        >
+          <Plus size={14} /> New chat
+        </button>
+      </div>
+
+      <div className="px-sm pt-sm">
+        <label className="flex items-center gap-xxs rounded-sm border border-hairline-soft bg-canvas px-xs py-xxs">
+          <Search size={13} className="shrink-0 text-faint" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search chats"
+            className="w-full bg-transparent text-caption text-ink outline-none placeholder:text-faint"
+          />
+        </label>
+      </div>
+
+      <p className="px-sm pb-xxs pt-sm text-caption uppercase tracking-wide text-faint">
+        Previous chats
+      </p>
+
+      <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-xxs">
+        {previous.length === 0 ? (
+          <p className="px-sm py-sm text-caption text-muted">
+            {query ? "No chats match your search." : "No previous chats yet."}
+          </p>
+        ) : (
+          <ul className="flex flex-col gap-[2px] pb-sm">
+            {previous.map((t) => {
+              const activeItem = t.id === activeId;
+              return (
+                <li key={t.id} className="group flex items-center">
+                  <button
+                    onClick={() => onOpen(t.id)}
+                    className={`flex min-w-0 flex-1 items-center gap-xs rounded-sm px-xs py-xs text-left transition-colors ${
+                      activeItem ? "bg-field text-ink" : "text-muted hover:bg-field hover:text-ink"
+                    }`}
+                  >
+                    <MessageSquare size={13} className="shrink-0 text-faint" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-caption text-ink">{t.title}</span>
+                      <span className="block text-[10px] text-faint">{updatedLabel(t.updatedAt)}</span>
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => onDelete(t.id)}
+                    className="mr-xxs rounded-full p-xs text-faint opacity-100 transition-opacity hover:text-ink sm:opacity-0 sm:group-hover:opacity-100"
+                    aria-label={`Delete ${t.title}`}
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+
+      <div className="border-t border-hairline-soft px-sm py-xs">
+        <button
+          onClick={onClear}
+          className="flex w-full items-center gap-xxs rounded-sm px-xs py-xs text-caption text-faint transition-colors hover:bg-field hover:text-ink"
+        >
+          <Trash2 size={12} /> Clear all chats
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function AssistantPage() {
   const toast = useToast();
   const { data: profile } = useApi<Profile>("/api/profile");
   const [threads, setThreads] = useState<Thread[]>([]);
   const [activeId, setActiveId] = useState("");
   const [sending, setSending] = useState(false);
-  const [historyOpen, setHistoryOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -74,9 +213,6 @@ export default function AssistantPage() {
   const active = threads.find((t) => t.id === activeId);
   const messages = active?.messages ?? [];
   const empty = messages.length === 0;
-  const pastChats = threads
-    .filter((t) => t.messages.length > 0)
-    .sort((a, b) => b.updatedAt - a.updatedAt);
 
   const firstName = (profile?.name || "Gurmeet").split(" ")[0];
   const greeting = greetingForHour(new Date().getHours());
@@ -97,6 +233,7 @@ export default function AssistantPage() {
     setThreads(next);
     setActiveId(fresh.id);
     saveThreads(next);
+    setSidebarOpen(isDesktop());
   }, []);
 
   useEffect(() => {
@@ -104,6 +241,10 @@ export default function AssistantPage() {
   }, [messages.length, sending, activeId]);
 
   useEffect(() => () => abortRef.current?.abort(), []);
+
+  const closeOnMobile = () => {
+    if (!isDesktop()) setSidebarOpen(false);
+  };
 
   async function send(text: string) {
     const content = text.trim();
@@ -163,22 +304,32 @@ export default function AssistantPage() {
   function newChat() {
     abortRef.current?.abort();
     setSending(false);
-    setHistoryOpen(false);
     const fresh = newThread();
     commit((prev) => [fresh, ...prev.filter((t) => t.messages.length > 0)].slice(0, MAX_THREADS));
     setActiveId(fresh.id);
+    closeOnMobile();
   }
 
   function openThread(id: string) {
     abortRef.current?.abort();
     setSending(false);
-    setHistoryOpen(false);
     setActiveId(id);
+    closeOnMobile();
   }
 
   function deleteThread(id: string) {
     commit((prev) => prev.filter((t) => t.id !== id));
     if (id === activeId) newChat();
+  }
+
+  function clearAll() {
+    if (!window.confirm("Delete all previous chats? This can't be undone.")) return;
+    abortRef.current?.abort();
+    setSending(false);
+    const fresh = newThread();
+    commit(() => [fresh]);
+    setActiveId(fresh.id);
+    closeOnMobile();
   }
 
   function dictate(): Promise<string> {
@@ -209,72 +360,58 @@ export default function AssistantPage() {
     return "notes.txt";
   }
 
+  const panelProps = {
+    threads,
+    activeId,
+    onNew: newChat,
+    onOpen: openThread,
+    onDelete: deleteThread,
+    onClear: clearAll,
+  };
+
   return (
-    <>
-      <div className="mx-auto flex h-[calc(100dvh-7rem)] max-w-2xl flex-col lg:h-[calc(100dvh-3.5rem)]">
-        {/* Header */}
-        <header className="flex items-center justify-between pb-xs">
-          <div className="flex items-center gap-xs text-body-sm text-muted">
-            <Sparkles size={13} />
-            <span>Assistant</span>
+    <div className="mx-auto flex h-[calc(100dvh-7rem)] w-full max-w-5xl gap-md lg:h-[calc(100dvh-3.5rem)]">
+      {/* Desktop chat sidebar */}
+      {sidebarOpen && (
+        <aside className="hidden w-60 shrink-0 overflow-hidden rounded-md border border-hairline-soft bg-canvas-soft lg:block">
+          <HistoryPanel {...panelProps} />
+        </aside>
+      )}
+
+      {/* Mobile / tablet drawer */}
+      {sidebarOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <div className="absolute inset-0 bg-black/30" onClick={() => setSidebarOpen(false)} aria-hidden />
+          <div className="pop-in absolute inset-y-0 left-0 flex w-[84%] max-w-xs flex-col overflow-hidden rounded-r-md border-r border-hairline-soft bg-canvas shadow-overlay">
+            <HistoryPanel {...panelProps} onClose={() => setSidebarOpen(false)} />
           </div>
-          <div className="relative flex items-center gap-xs">
-            <button
-              onClick={newChat}
-              className="flex items-center gap-xxs rounded-full px-sm py-xs text-caption text-muted transition-colors hover:bg-field hover:text-ink"
-            >
-              <Plus size={13} /> New chat
-            </button>
-            <button
-              onClick={() => setHistoryOpen((v) => !v)}
-              className="rounded-full p-xs text-muted transition-colors hover:bg-field hover:text-ink"
-              aria-label="Previous chats"
-              aria-expanded={historyOpen}
-            >
-              <History size={15} />
-            </button>
-            {historyOpen && (
-              <>
-                <div className="fixed inset-0 z-30" onClick={() => setHistoryOpen(false)} aria-hidden />
-                <div className="pop-in absolute right-0 top-[calc(100%+6px)] z-40 w-72 overflow-hidden rounded-md border border-hairline-soft bg-canvas shadow-overlay">
-                  <p className="px-sm py-xs text-caption uppercase tracking-wide text-faint">Previous chats</p>
-                  {pastChats.length === 0 ? (
-                    <p className="px-sm py-md text-body-sm text-muted">No previous chats yet.</p>
-                  ) : (
-                    <ul className="no-scrollbar max-h-72 overflow-y-auto py-xs">
-                      {pastChats.map((t) => (
-                        <li key={t.id} className="group flex items-center">
-                          <button
-                            onClick={() => openThread(t.id)}
-                            className="flex min-w-0 flex-1 items-center gap-xs px-sm py-xs text-left hover:bg-canvas-soft"
-                          >
-                            <MessageSquare size={13} className="shrink-0 text-faint" />
-                            <span className="min-w-0 flex-1">
-                              <span className="block truncate text-body-sm text-ink">{t.title}</span>
-                              <span className="block text-caption text-faint">
-                                {new Date(t.updatedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
-                              </span>
-                            </span>
-                          </button>
-                          <button
-                            onClick={() => deleteThread(t.id)}
-                            className="mr-xs rounded-full p-xs text-faint opacity-100 transition-opacity hover:text-ink sm:opacity-0 sm:group-hover:opacity-100"
-                            aria-label={`Delete ${t.title}`}
-                          >
-                            <Trash2 size={12} />
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              </>
-            )}
+        </div>
+      )}
+
+      {/* Chat column */}
+      <section className="flex min-w-0 flex-1 flex-col">
+        <header className="flex items-center gap-xs border-b border-hairline-soft pb-sm">
+          <button
+            onClick={() => setSidebarOpen((v) => !v)}
+            className="rounded-full p-xs text-muted transition-colors hover:bg-field hover:text-ink"
+            aria-label="Chats and options"
+            aria-expanded={sidebarOpen}
+          >
+            <MoreHorizontal size={18} />
+          </button>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-body-sm text-ink">{active?.title || "New chat"}</p>
           </div>
+          <button
+            onClick={newChat}
+            className="flex items-center gap-xxs rounded-full px-sm py-xs text-caption text-muted transition-colors hover:bg-field hover:text-ink"
+          >
+            <Plus size={14} /> New chat
+          </button>
         </header>
 
         {/* Stream / minimal empty state */}
-        <div ref={scrollRef} className="no-scrollbar flex-1 overflow-y-auto pb-36">
+        <div ref={scrollRef} className="no-scrollbar min-h-0 flex-1 overflow-y-auto pb-sm">
           {empty ? (
             <div className="flex h-full flex-col items-center justify-center px-md text-center">
               <p className="text-h3 text-ink">
@@ -322,42 +459,38 @@ export default function AssistantPage() {
             </div>
           )}
         </div>
-      </div>
 
-      {/* Sticky floating composer — rides above the mobile bottom nav */}
-      <div className="pointer-events-none fixed inset-x-0 bottom-16 z-30 lg:bottom-0 lg:left-[17rem]">
-        <div className="mx-auto w-full max-w-2xl px-md pb-sm lg:px-xl">
-          <div className="pointer-events-auto">
-            <PromptBar
-              placeholder="Ask anything…"
-              busy={sending}
-              width={768}
-              radius={18}
-              maxRows={4}
-              className="assistant-prompt rounded-[18px] border border-gray-200 bg-white shadow-xl"
-              background="#ffffff"
-              menuBackground="#ffffff"
-              color="#141414"
-              sparkColor="#141414"
-              sources={[
-                { key: "tasks", name: "Tasks", description: "Your open tasks and to-dos" },
-                { key: "mistakes", name: "Mistakes", description: "Your mistake notebook" },
-                { key: "revisions", name: "Revisions", description: "Chapters due for revision" },
-              ]}
-              commands={[
-                { key: "plan", name: "plan", description: "Build a study plan" },
-                { key: "review", name: "review", description: "Review weak chapters" },
-              ]}
-              models={[]}
-              efforts={[]}
-              onSend={(text) => send(text)}
-              onStop={() => abortRef.current?.abort()}
-              onAttach={attach}
-              onDictate={dictate}
-            />
-          </div>
+        {/* Composer — sits above the mobile bottom nav, inside the chat column */}
+        <div className="shrink-0 pt-sm">
+          <PromptBar
+            placeholder="Ask anything…"
+            busy={sending}
+            width={768}
+            radius={18}
+            maxRows={4}
+            className="assistant-prompt rounded-[18px] border border-gray-200 bg-white shadow-xl"
+            background="#ffffff"
+            menuBackground="#ffffff"
+            color="#141414"
+            sparkColor="#141414"
+            sources={[
+              { key: "tasks", name: "Tasks", description: "Your open tasks and to-dos" },
+              { key: "mistakes", name: "Mistakes", description: "Your mistake notebook" },
+              { key: "revisions", name: "Revisions", description: "Chapters due for revision" },
+            ]}
+            commands={[
+              { key: "plan", name: "plan", description: "Build a study plan" },
+              { key: "review", name: "review", description: "Review weak chapters" },
+            ]}
+            models={[]}
+            efforts={[]}
+            onSend={(text) => send(text)}
+            onStop={() => abortRef.current?.abort()}
+            onAttach={attach}
+            onDictate={dictate}
+          />
         </div>
-      </div>
-    </>
+      </section>
+    </div>
   );
 }
