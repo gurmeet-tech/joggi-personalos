@@ -13,7 +13,7 @@ import {
   X,
   ArrowUp,
   Square,
-  Paperclip,
+  ClipboardPaste,
   Mic,
 } from "lucide-react";
 import {
@@ -375,9 +375,17 @@ export default function AssistantPage() {
     });
   }
 
-  async function attach(): Promise<string> {
-    toast("Attachments are visual only — paste the text in and I'll read it.", "info");
-    return "notes.txt";
+  async function handlePaste() {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (!text.trim()) {
+        toast("Your clipboard is empty.", "info");
+        return;
+      }
+      setInput((v) => (v ? `${v} ${text.trim()}` : text.trim()));
+    } catch {
+      toast("Clipboard access was blocked. Use Ctrl/Cmd + V instead.", "error");
+    }
   }
 
   function submit() {
@@ -404,24 +412,24 @@ export default function AssistantPage() {
 
   const composer = (
     <PromptInput
-      className="assistant-prompt rounded-3xl border border-gray-200 bg-white p-2 shadow-xl"
+      className="assistant-prompt rounded-3xl border border-gray-200 bg-white p-sm shadow-xl dark:border-white/10 dark:bg-[#1b1b1b]"
       value={input}
       onValueChange={setInput}
       onSubmit={submit}
       maxHeight={160}
       isLoading={sending}
     >
-      <PromptInputTextarea placeholder="Ask anything…" />
-      <PromptInputActions className="justify-between px-xs">
+      <PromptInputTextarea placeholder="Ask anything…" className="px-xs" />
+      <PromptInputActions className="justify-between px-xs pt-xs">
         <div className="flex items-center gap-xxs">
-          <PromptInputAction tooltip="Attach file">
+          <PromptInputAction tooltip="Paste from clipboard">
             <button
               type="button"
-              onClick={() => void attach()}
+              onClick={() => void handlePaste()}
               className="rounded-full p-xs text-muted transition-colors hover:bg-field hover:text-ink"
-              aria-label="Attach file"
+              aria-label="Paste from clipboard"
             >
-              <Paperclip size={15} />
+              <ClipboardPaste size={15} />
             </button>
           </PromptInputAction>
           <PromptInputAction tooltip="Dictate">
@@ -451,7 +459,7 @@ export default function AssistantPage() {
   );
 
   return (
-    <div className="mx-auto flex h-full w-full max-w-5xl gap-md p-md lg:p-lg">
+    <div className="mx-auto flex h-full w-full max-w-5xl gap-md p-md pb-0 lg:p-lg lg:pb-xs">
       {/* Desktop chat sidebar */}
       {sidebarOpen && (
         <aside className="hidden w-60 shrink-0 overflow-hidden rounded-md border border-hairline-soft bg-canvas-soft lg:block">
@@ -471,30 +479,33 @@ export default function AssistantPage() {
 
       {/* Chat column */}
       <section className="relative flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center gap-xs border-b border-hairline-soft pb-sm">
-          <button
-            onClick={() => setSidebarOpen((v) => !v)}
-            className="rounded-full p-xs text-muted transition-colors hover:bg-field hover:text-ink"
-            aria-label="Chats and options"
-            aria-expanded={sidebarOpen}
-          >
-            <MoreHorizontal size={18} />
-          </button>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-body-sm text-ink">{active?.title || "New chat"}</p>
+        <header className="border-b border-hairline-soft pb-sm">
+          <div className="mx-auto flex w-full max-w-2xl items-center gap-xs">
+            <button
+              onClick={() => setSidebarOpen((v) => !v)}
+              className="rounded-full p-xs text-muted transition-colors hover:bg-field hover:text-ink"
+              aria-label="Chats and options"
+              aria-expanded={sidebarOpen}
+            >
+              <MoreHorizontal size={18} />
+            </button>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-body-sm font-semibold text-ink">{active?.title || "New chat"}</p>
+              <p className="truncate text-[10px] text-faint">MY OS study assistant</p>
+            </div>
+            <button
+              onClick={newChat}
+              className="flex items-center gap-xxs rounded-full px-sm py-xs text-caption text-muted transition-colors hover:bg-field hover:text-ink"
+            >
+              <Plus size={14} /> New chat
+            </button>
           </div>
-          <button
-            onClick={newChat}
-            className="flex items-center gap-xxs rounded-full px-sm py-xs text-caption text-muted transition-colors hover:bg-field hover:text-ink"
-          >
-            <Plus size={14} /> New chat
-          </button>
         </header>
 
         {/* Stream / minimal empty state */}
         <div ref={scrollRef} className="no-scrollbar min-h-0 flex-1 overflow-y-auto">
           {empty ? (
-            <div className="flex h-full flex-col items-center justify-center px-md pb-20 text-center">
+            <div className="mx-auto flex h-full w-full max-w-2xl flex-col items-center justify-center px-md pb-20 text-center">
               <p className="text-h3 text-ink">
                 {greeting}, {firstName}.
               </p>
@@ -508,7 +519,7 @@ export default function AssistantPage() {
               </div>
             </div>
           ) : (
-            <div className="flex flex-col gap-md pb-36 pt-md">
+            <div className="mx-auto flex w-full max-w-2xl flex-col gap-md pb-36 pt-md">
               {messages.map((m) =>
                 m.role === "user" ? (
                   <div key={m.id} className="flex justify-end">
@@ -539,7 +550,7 @@ export default function AssistantPage() {
 
         {/* Floating composer — messages scroll underneath it */}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-canvas via-canvas to-transparent pt-xl">
-          <div className="pointer-events-auto">{composer}</div>
+          <div className="pointer-events-auto mx-auto w-full max-w-2xl">{composer}</div>
         </div>
       </section>
     </div>

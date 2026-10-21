@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { ToastProvider } from "@/components/ui";
 import { StudyTimerProvider } from "@/components/study-timer";
@@ -7,6 +7,12 @@ import AppShell from "@/components/layout/shell";
 export const metadata: Metadata = {
   title: "MY OS — Personal Operating System",
   description: "Class 12 board exam simulator, AI study planner, English lab, freelance CRM and self-improvement — one intelligent system.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  interactiveWidget: "resizes-content",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

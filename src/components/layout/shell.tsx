@@ -23,6 +23,8 @@ import {
   Menu,
   X,
   User,
+  PanelLeft,
+  PanelLeftClose,
 } from "lucide-react";
 import { cn, greetingForHour, initials, TASKS_CHANGED_EVENT, notifyTasksChanged } from "@/lib/utils";
 import { Badge } from "@/components/ui";
@@ -72,7 +74,7 @@ const NAV_GROUPS: Array<{ label: string; items: Array<{ href: string; label: str
 function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   return (
-    <nav className="no-scrollbar flex flex-col gap-lg overflow-y-auto px-sm py-md" aria-label="Primary">
+    <nav className="flex h-full flex-col gap-lg overflow-y-auto overscroll-contain px-sm py-md" aria-label="Primary">
       {NAV_GROUPS.map((group) => (
         <div key={group.label}>
           <div className="label-cap mb-xs px-md">{group.label}</div>
@@ -141,6 +143,7 @@ function QuickAdd({ onClose }: { onClose: () => void }) {
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [desktopNavOpen, setDesktopNavOpen] = useState(true);
   const [quickOpen, setQuickOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [profile, setProfile] = useState<{ name: string; onboarded: boolean }>({ name: "Student", onboarded: false });
@@ -208,29 +211,50 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const dateLabel = now.toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 
   return (
-    <div className="min-h-screen bg-canvas">
+    <div className={cn("bg-canvas", isAssistant ? "h-dvh overflow-hidden" : "min-h-screen")}>
       {/* Desktop sidebar — floating canvas-soft column per design system */}
-      <aside className="fixed inset-y-xl left-lg z-30 hidden w-64 flex-col rounded-md bg-canvas-soft lg:flex">
-        <Link href="/dashboard" className="flex items-center gap-sm px-md pt-md">
-          <span className="flex h-8 w-8 items-center justify-center rounded-sm bg-ink text-label text-on-primary" style={{ borderRadius: "30%" }}>
-            OS
-          </span>
-          <span className="text-title text-ink">MY OS</span>
-        </Link>
-        <div className="mt-sm flex-1 overflow-hidden">
-          <NavLinks />
-        </div>
-        <div className="px-md pb-md">
-          <button className="btn-primary w-full" onClick={() => setQuickOpen(true)}>
-            <Plus size={16} /> Quick add
-          </button>
-          <p className="mt-xs text-center text-caption text-faint">Ctrl / ⌘ + K</p>
-        </div>
-      </aside>
+      {desktopNavOpen && (
+        <aside className="fixed inset-y-xl left-lg z-30 hidden w-64 flex-col rounded-md bg-canvas-soft lg:flex">
+          <div className="flex items-center justify-between px-md pt-md">
+            <Link href="/dashboard" className="flex items-center gap-sm">
+              <span className="flex h-8 w-8 items-center justify-center rounded-sm bg-ink text-label text-on-primary" style={{ borderRadius: "30%" }}>
+                OS
+              </span>
+              <span className="text-title text-ink">MY OS</span>
+            </Link>
+            <button
+              onClick={() => setDesktopNavOpen(false)}
+              className="rounded-full p-xs text-muted transition-colors hover:bg-field hover:text-ink"
+              aria-label="Hide sidebar"
+            >
+              <PanelLeftClose size={15} />
+            </button>
+          </div>
+          <div className="mt-sm min-h-0 flex-1 overflow-hidden">
+            <NavLinks />
+          </div>
+          <div className="px-md pb-md">
+            <button className="btn-primary w-full" onClick={() => setQuickOpen(true)}>
+              <Plus size={16} /> Quick add
+            </button>
+            <p className="mt-xs text-center text-caption text-faint">Ctrl / ⌘ + K</p>
+          </div>
+        </aside>
+      )}
 
-      {/* Mobile drawer */}
+      {!desktopNavOpen && (
+        <button
+          onClick={() => setMobileOpen(true)}
+          className="fixed left-0 top-1/2 z-40 hidden h-12 w-8 -translate-y-1/2 items-center justify-center rounded-r-md border border-l-0 border-hairline-soft bg-canvas-soft text-muted shadow-card transition-colors hover:text-ink lg:flex"
+          aria-label="Open sidebar"
+        >
+          <PanelLeft size={15} />
+        </button>
+      )}
+
+      {/* Navigation drawer — works on mobile and desktop */}
       {mobileOpen && (
-        <div className="fixed inset-0 z-50 bg-ink/30 lg:hidden" onMouseDown={(e) => e.target === e.currentTarget && setMobileOpen(false)}>
+        <div className="fixed inset-0 z-50 bg-ink/30" onMouseDown={(e) => e.target === e.currentTarget && setMobileOpen(false)}>
           <aside className="no-scrollbar absolute inset-y-0 left-0 w-72 overflow-y-auto rounded-r-md bg-canvas-soft">
             <div className="flex items-center justify-between px-md pt-md">
               <span className="text-title text-ink">MY OS</span>
@@ -243,7 +267,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       )}
 
-      <div className="lg:pl-[17rem]">
+      <div className={cn(desktopNavOpen && "lg:pl-[17rem]")}>
         {/* Top bar */}
         <header className={cn("sticky top-0 z-20 border-b border-hairline-soft bg-canvas/95 backdrop-blur", isAssistant && "hidden")}>
           <div className="flex items-center gap-sm px-md py-sm lg:px-xl">
@@ -366,7 +390,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </nav>
       {!isAssistant && <div className="h-16 lg:hidden" />}
 
-      <StudyTimerIsland />
+      <StudyTimerIsland hidden={pathname === "/dashboard"} />
 
       {quickOpen && <QuickAdd onClose={() => setQuickOpen(false)} />}
       {!profile.onboarded && <Badge className="sr-only">setup required</Badge>}

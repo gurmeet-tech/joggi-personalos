@@ -9,6 +9,13 @@ export function notifyTasksChanged(): void {
   if (typeof window !== "undefined") window.dispatchEvent(new Event(TASKS_CHANGED_EVENT));
 }
 
+/** Fired when a chapter is marked studied so month-end recall can refresh. */
+export const CHAPTERS_CHANGED_EVENT = "myos:chapters-changed";
+
+export function notifyChaptersChanged(): void {
+  if (typeof window !== "undefined") window.dispatchEvent(new Event(CHAPTERS_CHANGED_EVENT));
+}
+
 export function todayISO(): string {
   return new Date().toISOString().slice(0, 10);
 }

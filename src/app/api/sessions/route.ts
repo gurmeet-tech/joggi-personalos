@@ -45,14 +45,16 @@ export async function POST(req: NextRequest) {
     },
   });
   if (d.complete && d.chapterId) {
-    await db.chapter.update({
-      where: { id: d.chapterId },
-      data: { lastStudiedAt: new Date(), status: { set: undefined } },
-    }).catch(() => null);
-    await db.chapter.update({
-      where: { id: d.chapterId },
-      data: { lastStudiedAt: new Date() },
-    }).catch(() => null);
+    const chapter = await db.chapter.findUnique({ where: { id: d.chapterId } }).catch(() => null);
+    if (chapter) {
+      await db.chapter.update({
+        where: { id: d.chapterId },
+        data: {
+          lastStudiedAt: new Date(),
+          status: chapter.status === "NOT_STARTED" ? "STUDIED" : chapter.status,
+        },
+      }).catch(() => null);
+    }
   }
   const plan = await db.studyPlan.findFirst({ where: { date: session.date } });
   if (plan) {

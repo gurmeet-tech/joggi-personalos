@@ -264,6 +264,33 @@ body {
 .reveal > *:nth-child(5) { animation-delay: 160ms; }
 .reveal > *:nth-child(6) { animation-delay: 200ms; }
 
+/* Dynamic-island timer — springy entrance */
+@keyframes island-pop {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, -22px, 0) scale(0.7);
+  }
+  55% {
+    opacity: 1;
+    transform: translate3d(0, 3px, 0) scale(1.07);
+  }
+  75% {
+    transform: translate3d(0, -1px, 0) scale(0.98);
+  }
+  90% {
+    transform: translate3d(0, 1px, 0) scale(1.01);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+.island-pop {
+  animation: island-pop 0.62s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  transform-origin: top center;
+  will-change: transform, opacity;
+}
+
 /* Subtle lift for interactive cards — transform only, no paint jitter */
 .hover-lift {
   transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
@@ -293,6 +320,7 @@ body {
   .bell-shake,
   .fade-up,
   .pop-in,
+  .island-pop,
   .reveal > * {
     animation: none !important;
   }

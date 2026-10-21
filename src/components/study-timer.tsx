@@ -192,15 +192,15 @@ export default function StudyTimer({ onLogged }: Props) {
   );
 }
 
-/** Floating "dynamic island" timer that stays visible on every page. */
-export function StudyTimerIsland() {
+/** Floating "dynamic island" timer. Hidden on home, springs in elsewhere. */
+export function StudyTimerIsland({ hidden = false }: { hidden?: boolean }) {
   const { running, seconds, saving, start, pause, finish } = useStudyTimer();
 
-  if (!running && seconds === 0) return null;
+  if (hidden || (!running && seconds === 0)) return null;
 
   return (
     <div className="pointer-events-none fixed left-1/2 top-[68px] z-40 -translate-x-1/2">
-      <div className="pointer-events-auto flex items-center gap-xs rounded-full bg-ink py-xxs pl-sm pr-xxs text-on-primary shadow-overlay">
+      <div className="island-pop pointer-events-auto flex items-center gap-xs rounded-full bg-ink py-xxs pl-sm pr-xxs text-on-primary shadow-overlay">
         <span className="relative flex h-2 w-2 shrink-0">
           {running && (
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />

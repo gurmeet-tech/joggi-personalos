@@ -8,6 +8,7 @@ import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianG
 import { TrendingUp, ListTodo } from "lucide-react";
 import StudyTimer from "@/components/study-timer";
 import SpringCheck from "@/components/reactbits/SpringCheck";
+import QuickMcq from "@/components/quick-mcq";
 
 function boardExamDateISO(): string {
   const now = new Date();
@@ -123,6 +124,9 @@ export default function DashboardPage() {
           </ul>
         )}
       </Card>
+
+      {/* Quick 5-minute MCQ sprint */}
+      <QuickMcq />
 
       {/* Focus timer */}
       <Card className="mb-md">

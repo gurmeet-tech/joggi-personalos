@@ -2,8 +2,9 @@
 
 import React, { useState } from "react";
 import { useApi, Card, Button, Field, Input, Select, Badge, Spinner, ErrorState, Progress, useToast, Segmented, Modal } from "@/components/ui";
-import { minutesToHm, relativeDay, todayISO } from "@/lib/utils";
+import { minutesToHm, relativeDay, todayISO, notifyChaptersChanged } from "@/lib/utils";
 import { Sparkles, Check, X, Clock, CalendarDays, Plus } from "lucide-react";
+import MonthEndTest from "@/components/month-end-test";
 
 interface PlanItem {
   id: string;
@@ -76,6 +77,7 @@ export default function PlannerPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ date, itemId, action, newDate }),
     }).catch(() => null);
+    if (action === "complete") notifyChaptersChanged();
     reload();
   }
 
@@ -151,6 +153,10 @@ export default function PlannerPage() {
         <Segmented options={[{ value: "week", label: "7-day view" }, { value: "today", label: "Today" }]} value={view} onChange={setView} />
       </div>
 
+      <div className="mt-md">
+        <MonthEndTest />
+      </div>
+
       {!data?.plans.length && (
         <Card soft className="mt-md">
           <p className="text-body text-ink">No plan yet. Click “Generate plan” — the engine will schedule learning, practice, spaced revision and a weekly mock, then adjust as you complete or miss sessions.</p>
@@ -185,7 +191,7 @@ export default function PlannerPage() {
                     </span>
                     {!item.completed && !item.skipped && (
                       <div className="flex gap-xs">
-                        <button onClick={() => itemAction(plan.date, item.id, "complete")} className="rounded-full bg-ink p-xs text-on-primary" aria-label="Complete">
+                        <button onClick={() => itemAction(plan.date, item.id, "complete")} className="rounded-full bg-ink p-xs text-on-primary" aria-label={item.chapter ? `Mark ${item.chapter} done` : "Complete"} title={item.chapter ? `Mark ${item.chapter} done` : "Complete"}>
                           <Check size={12} />
                         </button>
                         <button onClick={() => itemAction(plan.date, item.id, "skip")} className="rounded-full bg-canvas p-xs text-muted border border-hairline-soft" aria-label="Skip">

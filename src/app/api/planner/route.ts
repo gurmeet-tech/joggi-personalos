@@ -101,8 +101,30 @@ export async function PATCH(req: NextRequest) {
   if (idx === -1) return NextResponse.json({ error: "Plan item not found." }, { status: 404 });
 
   if (action === "remove") items.splice(idx, 1);
-  else if (action === "complete") items[idx] = { ...items[idx], completed: true };
-  else if (action === "skip") items[idx] = { ...items[idx], skipped: true };
+  else if (action === "complete") {
+    items[idx] = { ...items[idx], completed: true };
+    const item = items[idx] as { subject?: string; chapter?: string; minutes?: number };
+    if (item.chapter && item.subject) {
+      const chapter = await db.chapter.findFirst({
+        where: { name: item.chapter, subject: { is: { name: item.subject } } },
+      });
+      if (chapter) {
+        await db.chapter.update({
+          where: { id: chapter.id },
+          data: {
+            lastStudiedAt: new Date(),
+            status: chapter.status === "MASTERED" ? "MASTERED" : "STUDIED",
+            completion: Math.max(chapter.completion, 70),
+            nextRevisionAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+          },
+        });
+        await db.studySession.updateMany({
+          where: { date, chapterId: chapter.id, completed: false },
+          data: { completed: true, actualMinutes: Number(item.minutes) || 60 },
+        });
+      }
+    }
+  } else if (action === "skip") items[idx] = { ...items[idx], skipped: true };
   else if (action === "reschedule" && newDate) {
     const [item] = items.splice(idx, 1);
     const target = await db.studyPlan.findFirst({ where: { date: newDate } });
