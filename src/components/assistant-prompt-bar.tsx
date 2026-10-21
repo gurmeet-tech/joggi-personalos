@@ -25,15 +25,15 @@ export default function AssistantPromptBar({
 }) {
   return (
     <PromptInput
-      className="assistant-prompt w-full rounded-full border border-gray-200 bg-white px-2 py-1 shadow-xl dark:border-white/10 dark:bg-[#1b1b1b]"
+      className="assistant-prompt w-full rounded-3xl border border-gray-200 bg-white p-2 shadow-xl dark:border-white/10 dark:bg-[#1b1b1b]"
       value={value}
       onValueChange={onChange}
       onSubmit={onSubmit}
       maxHeight={160}
       isLoading={sending}
     >
-      <PromptInputActions className="items-center gap-xs">
-        <PromptInputTextarea placeholder="Ask anything…" className="min-h-[34px] flex-1 px-sm py-1" />
+      <PromptInputTextarea placeholder="Ask anything…" className="min-h-[34px] px-sm" />
+      <PromptInputActions className="justify-end px-xs pt-xs">
         <PromptInputAction tooltip={sending ? "Stop" : "Send"}>
           <Button
             type="button"
