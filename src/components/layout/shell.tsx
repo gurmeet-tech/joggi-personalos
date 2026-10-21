@@ -28,6 +28,7 @@ import { cn, greetingForHour, initials, TASKS_CHANGED_EVENT, notifyTasksChanged 
 import { Badge } from "@/components/ui";
 import ThemeToggle from "@/components/theme-toggle";
 import SpringCheck from "@/components/reactbits/SpringCheck";
+import { StudyTimerIsland } from "@/components/study-timer";
 
 const NAV_GROUPS: Array<{ label: string; items: Array<{ href: string; label: string; icon: React.ElementType }> }> = [
   {
@@ -364,6 +365,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </nav>
       {!isAssistant && <div className="h-16 lg:hidden" />}
+
+      <StudyTimerIsland />
 
       {quickOpen && <QuickAdd onClose={() => setQuickOpen(false)} />}
       {!profile.onboarded && <Badge className="sr-only">setup required</Badge>}

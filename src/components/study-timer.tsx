@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import { Play, Pause, Square } from "lucide-react";
 import { useToast } from "@/components/ui";
-import { toHm } from "@/lib/utils";
+import { cn, toHm } from "@/lib/utils";
 
 interface Props {
   onLogged?: () => void;
@@ -11,14 +11,34 @@ interface Props {
 
 const STORAGE_KEY = "myos-timer";
 const MIN_SECONDS = 60;
+const LOGGED_EVENT = "myos:study-logged";
 
-export default function StudyTimer({ onLogged }: Props) {
+interface StudyTimerApi {
+  running: boolean;
+  seconds: number;
+  saving: boolean;
+  start: () => void;
+  pause: () => void;
+  finish: () => Promise<void>;
+}
+
+const StudyTimerContext = createContext<StudyTimerApi | null>(null);
+
+export function useStudyTimer(): StudyTimerApi {
+  const ctx = useContext(StudyTimerContext);
+  if (!ctx) throw new Error("useStudyTimer must be used inside StudyTimerProvider");
+  return ctx;
+}
+
+/** One shared timer that keeps ticking across page navigation. */
+export function StudyTimerProvider({ children }: { children: React.ReactNode }) {
   const toast = useToast();
   const [running, setRunning] = useState(false);
   const [seconds, setSeconds] = useState(0);
   const [saving, setSaving] = useState(false);
   const startedAtRef = useRef<number | null>(null);
   const baseRef = useRef(0);
+  const restoredRef = useRef(false);
 
   useEffect(() => {
     try {
@@ -51,6 +71,10 @@ export default function StudyTimer({ onLogged }: Props) {
   }, [running]);
 
   useEffect(() => {
+    if (!restoredRef.current) {
+      restoredRef.current = true;
+      return;
+    }
     try {
       localStorage.setItem(
         STORAGE_KEY,
@@ -62,6 +86,7 @@ export default function StudyTimer({ onLogged }: Props) {
   }, [running, seconds]);
 
   function start() {
+    if (running) return;
     startedAtRef.current = Date.now();
     setRunning(true);
   }
@@ -75,9 +100,14 @@ export default function StudyTimer({ onLogged }: Props) {
     setRunning(false);
   }
 
-  async function finish() {
+  const finish = async () => {
+    const startedAt = startedAtRef.current;
+    const total =
+      running && startedAt
+        ? baseRef.current + Math.floor((Date.now() - startedAt) / 1000)
+        : seconds;
+
     setRunning(false);
-    const total = seconds;
     startedAtRef.current = null;
     baseRef.current = 0;
     setSeconds(0);
@@ -100,13 +130,30 @@ export default function StudyTimer({ onLogged }: Props) {
       });
       if (!res.ok) throw new Error("Could not save session.");
       toast(`Logged ${minutes} min of deep work.`, "success");
-      onLogged?.();
+      window.dispatchEvent(new Event(LOGGED_EVENT));
     } catch (e) {
       toast((e as Error).message, "error");
     } finally {
       setSaving(false);
     }
-  }
+  };
+
+  return (
+    <StudyTimerContext.Provider value={{ running, seconds, saving, start, pause, finish }}>
+      {children}
+    </StudyTimerContext.Provider>
+  );
+}
+
+export default function StudyTimer({ onLogged }: Props) {
+  const { running, seconds, saving, start, pause, finish } = useStudyTimer();
+
+  useEffect(() => {
+    if (!onLogged) return;
+    const handler = () => onLogged();
+    window.addEventListener(LOGGED_EVENT, handler);
+    return () => window.removeEventListener(LOGGED_EVENT, handler);
+  }, [onLogged]);
 
   const active = running || seconds > 0;
 
@@ -134,13 +181,57 @@ export default function StudyTimer({ onLogged }: Props) {
         </button>
       )}
       <button
-        onClick={finish}
+        onClick={() => void finish()}
         disabled={!active || saving}
         aria-label="Finish and log session"
         className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-gray-300 text-ink transition-colors hover:bg-canvas-soft disabled:opacity-30"
       >
         <Square size={16} />
       </button>
+    </div>
+  );
+}
+
+/** Floating "dynamic island" timer that stays visible on every page. */
+export function StudyTimerIsland() {
+  const { running, seconds, saving, start, pause, finish } = useStudyTimer();
+
+  if (!running && seconds === 0) return null;
+
+  return (
+    <div className="pointer-events-none fixed left-1/2 top-[68px] z-40 -translate-x-1/2">
+      <div className="pointer-events-auto flex items-center gap-xs rounded-full bg-ink py-xxs pl-sm pr-xxs text-on-primary shadow-overlay">
+        <span className="relative flex h-2 w-2 shrink-0">
+          {running && (
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
+          )}
+          <span
+            className={cn(
+              "relative inline-flex h-2 w-2 rounded-full",
+              running ? "bg-emerald-400" : "bg-amber-400"
+            )}
+          />
+        </span>
+        <span className="hidden text-[9px] font-semibold uppercase tracking-wide opacity-60 sm:inline">
+          {running ? "Focus" : "Paused"}
+        </span>
+        <span className="text-caption tabular-nums">{toHm(seconds)}</span>
+        <button
+          onClick={running ? pause : start}
+          aria-label={running ? "Pause timer" : "Resume timer"}
+          className="flex h-7 w-7 items-center justify-center rounded-full transition-colors hover:bg-white/15"
+        >
+          {running ? <Pause size={12} /> : <Play size={12} />}
+        </button>
+        <button
+          onClick={() => void finish()}
+          disabled={saving}
+          aria-label="Finish and log session"
+          className="flex h-7 w-7 items-center justify-center rounded-full transition-colors hover:bg-white/15 disabled:opacity-40"
+        >
+          <Square size={11} />
+        </button>
+      </div>
     </div>
   );
 }

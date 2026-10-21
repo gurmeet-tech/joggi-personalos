@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { ToastProvider } from "@/components/ui";
+import { StudyTimerProvider } from "@/components/study-timer";
 import AppShell from "@/components/layout/shell";
 
 export const metadata: Metadata = {
@@ -23,7 +24,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <ToastProvider>
-          <AppShell>{children}</AppShell>
+          <StudyTimerProvider>
+            <AppShell>{children}</AppShell>
+          </StudyTimerProvider>
         </ToastProvider>
       </body>
     </html>
