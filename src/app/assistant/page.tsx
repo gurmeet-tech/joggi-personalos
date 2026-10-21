@@ -244,7 +244,6 @@ export default function AssistantPage() {
     setThreads(next);
     setActiveId(fresh.id);
     saveThreads(next);
-    setSidebarOpen(isDesktop());
   }, []);
 
   useEffect(() => {
