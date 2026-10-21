@@ -413,7 +413,7 @@ export default function AssistantPage() {
   );
 
   return (
-    <div className="mx-auto flex h-full w-full max-w-5xl gap-md p-md pb-0 lg:p-lg lg:pb-xs">
+    <div className="mx-auto flex h-full w-full max-w-5xl gap-md p-md pb-5 lg:p-lg lg:pb-5">
       {/* Desktop chat sidebar */}
       {sidebarOpen && (
         <aside className="hidden w-60 shrink-0 overflow-hidden rounded-md border border-hairline-soft bg-canvas-soft lg:block">
