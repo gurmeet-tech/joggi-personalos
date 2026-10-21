@@ -136,6 +136,21 @@ body {
   outline-offset: 2px;
 }
 
+/* AI prompt bar — clean white surface, no focus ring on the input */
+.assistant-prompt,
+.assistant-prompt:focus,
+.assistant-prompt:focus-within,
+.assistant-prompt textarea,
+.assistant-prompt textarea:focus,
+.assistant-prompt textarea:focus-visible {
+  outline: none !important;
+}
+
+.assistant-prompt textarea:focus,
+.assistant-prompt textarea:focus-visible {
+  box-shadow: none !important;
+}
+
 /* Exam ambience player: hide video visuals, keep audio */
 .ambience-audio-only iframe,
 .ambience-audio-only video {

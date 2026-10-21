@@ -327,17 +327,18 @@ export default function AssistantPage() {
       {/* Sticky floating composer — rides above the mobile bottom nav */}
       <div className="pointer-events-none fixed inset-x-0 bottom-16 z-30 lg:bottom-0 lg:left-[17rem]">
         <div className="mx-auto w-full max-w-2xl px-md pb-sm lg:px-xl">
-          <div className="pointer-events-auto rounded-[18px] shadow-overlay">
+          <div className="pointer-events-auto">
             <PromptBar
               placeholder="Ask anything…"
               busy={sending}
               width={768}
               radius={18}
               maxRows={4}
-              background="var(--chart-soft)"
-              menuBackground="var(--chart-tip-bg)"
-              color="var(--chart-ink)"
-              sparkColor="var(--chart-ink)"
+              className="assistant-prompt rounded-[18px] border border-gray-200 bg-white shadow-xl"
+              background="#ffffff"
+              menuBackground="#ffffff"
+              color="#141414"
+              sparkColor="#141414"
               sources={[
                 { key: "tasks", name: "Tasks", description: "Your open tasks and to-dos" },
                 { key: "mistakes", name: "Mistakes", description: "Your mistake notebook" },
