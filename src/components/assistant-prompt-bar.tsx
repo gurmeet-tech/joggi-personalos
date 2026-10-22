@@ -42,7 +42,7 @@ export default function AssistantPromptBar({
 }) {
   return (
     <PromptInput
-      className="assistant-prompt w-full rounded-3xl border border-gray-200 bg-white p-3 shadow-xl dark:border-white/10 dark:bg-[#1b1b1b]"
+      className="assistant-prompt w-full rounded-3xl border border-gray-200 bg-white px-3 py-5 shadow-xl dark:border-white/10 dark:bg-[#1b1b1b]"
       value={value}
       onValueChange={onChange}
       onSubmit={onSubmit}
