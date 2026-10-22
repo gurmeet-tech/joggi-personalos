@@ -7,7 +7,7 @@ const createSchema = z.object({
   date: z.string().optional(),
   subjectId: z.string().nullable().optional(),
   chapterId: z.string().nullable().optional(),
-  type: z.enum(["LEARN", "PRACTICE", "REVISION", "MOCK", "ENGLISH"]).default("LEARN"),
+  type: z.enum(["LEARN", "PRACTICE", "REVISION", "ENGLISH", "BREAK"]).default("LEARN"),
   plannedMinutes: z.number().int().min(1).max(720).default(60),
   actualMinutes: z.number().int().min(0).max(1440),
   title: z.string().max(200).default(""),

@@ -63,7 +63,7 @@ export async function GET() {
   const subjectProgress = subjects.map((s) => {
     const total = s.chapters.length;
     const mastered = s.chapters.filter((c) => c.status === "MASTERED").length;
-    const studied = s.chapters.filter((c) => ["STUDIED", "REVISION_REQUIRED", "TEST_PENDING", "MASTERED"].includes(c.status)).length;
+    const studied = s.chapters.filter((c) => ["STUDIED", "REVISION_REQUIRED", "NEEDS_PRACTICE", "MASTERED"].includes(c.status)).length;
     const avgCompletion = total ? Math.round(s.chapters.reduce((a, c) => a + c.completion, 0) / total) : 0;
     return {
       id: s.id,
@@ -116,7 +116,7 @@ export async function GET() {
     const target =
       subj.chapters.find((c) => c.status === "REVISION_REQUIRED") ??
       subj.chapters.find((c) => c.status === "IN_PROGRESS") ??
-      subj.chapters.find((c) => c.status === "STUDIED" || c.status === "TEST_PENDING") ??
+      subj.chapters.find((c) => c.status === "STUDIED" || c.status === "NEEDS_PRACTICE") ??
       subj.chapters.find((c) => c.status === "NOT_STARTED") ??
       subj.chapters[0] ??
       null;

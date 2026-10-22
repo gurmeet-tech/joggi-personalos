@@ -20,13 +20,13 @@ type Chapter = {
 };
 type Subject = { id: string; name: string; chapters: Chapter[] };
 
-const STATUSES = ["NOT_STARTED", "IN_PROGRESS", "STUDIED", "REVISION_REQUIRED", "TEST_PENDING", "MASTERED"] as const;
+const STATUSES = ["NOT_STARTED", "IN_PROGRESS", "STUDIED", "REVISION_REQUIRED", "NEEDS_PRACTICE", "MASTERED"] as const;
 const STATUS_LABEL: Record<string, string> = {
   NOT_STARTED: "Not started",
   IN_PROGRESS: "Learning",
   STUDIED: "Studied once",
   REVISION_REQUIRED: "Revision required",
-  TEST_PENDING: "Needs practice",
+  NEEDS_PRACTICE: "Needs practice",
   MASTERED: "Mastered",
 };
 

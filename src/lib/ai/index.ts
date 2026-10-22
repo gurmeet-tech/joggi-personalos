@@ -393,7 +393,8 @@ export async function assistantReply(
   history: Array<{ role: string; content: string }>,
   ctx: AssistantContext,
   opts: { deep?: boolean } = {}
-): Promise<{ reply: string; isDemo: boolean }> {  const lastUser = [...history].reverse().find((m) => m.role === "user")?.content?.toLowerCase() || "";
+): Promise<{ reply: string; isDemo: boolean }> {
+  const lastUser = [...history].reverse().find((m) => m.role === "user")?.content?.toLowerCase() || "";
 
   // Deterministic local intents (work in both modes; instant and data-grounded).
   if (/weakest|weak chapters|bad at/.test(lastUser)) {

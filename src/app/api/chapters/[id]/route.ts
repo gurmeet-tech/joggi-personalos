@@ -4,7 +4,7 @@ import { z } from "zod";
 
 const patchSchema = z.object({
   name: z.string().min(1).max(120).optional(),
-  status: z.enum(["NOT_STARTED", "IN_PROGRESS", "STUDIED", "REVISION_REQUIRED", "TEST_PENDING", "MASTERED"]).optional(),
+  status: z.enum(["NOT_STARTED", "IN_PROGRESS", "STUDIED", "REVISION_REQUIRED", "NEEDS_PRACTICE", "MASTERED"]).optional(),
   confidence: z.number().int().min(1).max(5).optional(),
   completion: z.number().int().min(0).max(100).optional(),
   order: z.number().int().min(0).optional(),

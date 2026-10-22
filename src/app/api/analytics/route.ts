@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
     subject: s.name,
     notStarted: s.chapters.filter((c) => c.status === "NOT_STARTED").length,
     inProgress: s.chapters.filter((c) => c.status === "IN_PROGRESS").length,
-    revision: s.chapters.filter((c) => c.status === "REVISION_REQUIRED" || c.status === "TEST_PENDING").length,
+    revision: s.chapters.filter((c) => c.status === "REVISION_REQUIRED" || c.status === "NEEDS_PRACTICE").length,
     mastered: s.chapters.filter((c) => c.status === "MASTERED").length,
   }));
 

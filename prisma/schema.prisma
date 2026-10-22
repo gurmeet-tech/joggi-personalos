@@ -16,10 +16,6 @@ model Profile {
   targetMarks        Int?
   dailyStudyHours    Float    @default(4)
   englishAccent      String   @default("Indian")
-  ambienceVideoUrl   String   @default("https://youtu.be/CYcn9O8hkz8")
-  ambienceVolume     Float    @default(0.4)
-  strictMode         Boolean  @default(true)
-  defaultDurationMin Int      @default(180)
   onboarded          Boolean  @default(false)
   schoolSchedule     String?
   examDates          String?
@@ -34,7 +30,6 @@ model Subject {
   target    Int?
   createdAt DateTime  @default(now())
   chapters  Chapter[]
-  papers    ExamPaper[]
 }
 
 model Chapter {
@@ -43,12 +38,10 @@ model Chapter {
   subject          Subject   @relation(fields: [subjectId], references: [id], onDelete: Cascade)
   name             String
   order            Int       @default(0)
-  status           String    @default("NOT_STARTED") // NOT_STARTED | IN_PROGRESS | STUDIED | REVISION_REQUIRED | TEST_PENDING | MASTERED
+  status           String    @default("NOT_STARTED") // NOT_STARTED | IN_PROGRESS | STUDIED | REVISION_REQUIRED | NEEDS_PRACTICE | MASTERED
   confidence       Int       @default(1) // 1..5
   completion       Int       @default(0) // 0..100
   lastStudiedAt    DateTime?
-  lastTestScore    Float?
-  attempts         Int       @default(0)
   weakConcepts     String    @default("[]") // JSON array
   nextRevisionAt   DateTime?
   topics           Topic[]
@@ -62,82 +55,6 @@ model Topic {
   chapter   Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
   name      String
   mastered  Boolean @default(false)
-}
-
-model ExamPaper {
-  id              String        @id @default(cuid())
-  subjectId       String?
-  subject         Subject?      @relation(fields: [subjectId], references: [id], onDelete: SetNull)
-  title           String
-  mode            String // CHAPTER | HALF | FULL | CUSTOM | WEAK | REVISION | PREVIOUS_YEAR
-  chapterIds      String        @default("[]") // JSON array
-  difficulty      String        @default("mixed")
-  questionTypes   String        @default("[]") // JSON array
-  language        String        @default("English")
-  durationMinutes Int           @default(180)
-  totalMarks      Int           @default(80)
-  markingScheme   String        @default("{}") // JSON
-  instructions    String        @default("[]") // JSON array of strings
-  isDemo          Boolean       @default(false)
-  createdAt       DateTime      @default(now())
-  questions       Question[]
-  attempts        ExamAttempt[]
-}
-
-model Question {
-  id        String       @id @default(cuid())
-  paperId   String
-  paper     ExamPaper    @relation(fields: [paperId], references: [id], onDelete: Cascade)
-  number    Int
-  type      String // MCQ | TRUE_FALSE | ASSERTION_REASON | MATCHING | SHORT | LONG | CASE | NUMERICAL | DERIVATION
-  text      String
-  options   String       @default("[]") // JSON array of {id,text}
-  marks     Int          @default(1)
-  topics    String       @default("[]") // JSON array
-  difficulty String      @default("moderate")
-  answer    String       @default("") // correct answer / key
-  solution  String       @default("")
-  scheme    String       @default("[]") // JSON array of marking points
-  choiceGroup Int?       // questions sharing a choiceGroup form an internal-choice pair
-  attempts  ExamAttemptAnswer[]
-}
-
-model ExamAttempt {
-  id              String                @id @default(cuid())
-  paperId         String
-  paper           ExamPaper             @relation(fields: [paperId], references: [id], onDelete: Cascade)
-  startedAt       DateTime?
-  submittedAt     DateTime?
-  durationMinutes Int                   @default(180)
-  strictMode      Boolean               @default(true)
-  status          String                @default("NOT_STARTED") // NOT_STARTED | IN_PROGRESS | SUBMITTED | EVALUATED
-  answers         ExamAttemptAnswer[]
-  markedForReview String                @default("[]") // JSON array of question ids
-  visited         String                @default("[]") // JSON array of question ids
-  timePerQuestion String                @default("{}") // JSON {questionId: seconds}
-  autoSubmitted   Boolean               @default(false)
-  score           Float?
-  maxScore        Int                   @default(0)
-  subjectiveScore Float?
-  objectiveScore  Float?
-  evaluation      String                @default("{}") // JSON per-question breakdown
-  notes           String?
-  createdAt       DateTime              @default(now())
-}
-
-model ExamAttemptAnswer {
-  id           String      @id @default(cuid())
-  attemptId    String
-  attempt      ExamAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
-  questionId   String
-  question     Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  response     String      @default("")
-  isCorrect    Boolean?
-  awardedMarks Float?
-  aiComment    String?
-  savedAt      DateTime    @default(now())
-
-  @@unique([attemptId, questionId])
 }
 
 model StudyPlan {
@@ -158,7 +75,7 @@ model StudySession {
   subjectId      String?
   chapterId      String?
   chapter        Chapter?   @relation(fields: [chapterId], references: [id], onDelete: SetNull)
-  type           String     @default("LEARN") // LEARN | PRACTICE | REVISION | MOCK | ENGLISH
+  type           String     @default("LEARN") // LEARN | PRACTICE | REVISION | ENGLISH | BREAK
   plannedMinutes Int        @default(60)
   actualMinutes  Int?
   completed      Boolean    @default(false)
@@ -223,8 +140,6 @@ model Goal {
 
 model Mistake {
   id              String    @id @default(cuid())
-  attemptId       String?
-  questionId      String?
   subjectId       String?
   chapterId       String?
   chapter         Chapter?  @relation(fields: [chapterId], references: [id], onDelete: SetNull)
