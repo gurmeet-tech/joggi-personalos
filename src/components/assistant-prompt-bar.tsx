@@ -1,19 +1,13 @@
 "use client";
 
-import React from "react";
-import { ArrowUp, Brain, ClipboardPaste, Mic, Square } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import { ArrowUp, Brain, Check, ClipboardPaste, Mic, Plus, Square } from "lucide-react";
 import { Button } from "@/components/ui";
 import { cn } from "@/lib/utils";
-import {
-  PromptInput,
-  PromptInputTextarea,
-  PromptInputActions,
-  PromptInputAction,
-} from "@/components/ui/prompt-input";
+import { PromptInput, PromptInputTextarea } from "@/components/ui/prompt-input";
 
 const activeTone =
   "border-sky-300 bg-sky-50 text-sky-700 ring-2 ring-sky-200 dark:border-sky-500/50 dark:bg-sky-500/10 dark:text-sky-300 dark:ring-sky-500/40";
-const idleTone = "border-transparent text-muted hover:bg-field hover:text-ink";
 
 export default function AssistantPromptBar({
   value,
@@ -40,65 +34,98 @@ export default function AssistantPromptBar({
   listening: boolean;
   onToggleMic: () => void;
 }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  // Close the utilities menu on an outside click or Escape.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (!wrapRef.current?.contains(e.target as Node)) setMenuOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMenuOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [menuOpen]);
+
+  const menuItem =
+    "flex w-full items-center gap-sm rounded-sm px-sm py-xs text-body-sm text-ink transition-colors hover:bg-canvas-soft";
+
   return (
-    <PromptInput
-      className="assistant-prompt w-full rounded-3xl border border-gray-200 bg-white px-3 py-5 shadow-xl dark:border-white/10 dark:bg-[#1b1b1b]"
-      value={value}
-      onValueChange={onChange}
-      onSubmit={onSubmit}
-      maxHeight={160}
-      isLoading={sending}
-    >
-      <PromptInputTextarea
-        placeholder={listening ? "Listening…" : "Ask anything…"}
-        className="min-h-[38px] px-md"
-      />
-      <PromptInputActions className="justify-between gap-xs px-1 pt-1.5">
-        <div className="flex items-center gap-xxs">
-          <PromptInputAction tooltip="Deep thinking">
+    <div className="relative" ref={wrapRef}>
+      <PromptInput
+        className="assistant-prompt w-full rounded-2xl border border-gray-200 bg-white p-2 shadow-xl dark:border-white/10 dark:bg-[#1b1b1b]"
+        value={value}
+        onValueChange={onChange}
+        onSubmit={onSubmit}
+        maxHeight={160}
+        isLoading={sending}
+      >
+        <div className="flex items-center gap-1">
+          {/* Utilities live behind a single plus, like a compact chat composer. */}
+          <div className="relative shrink-0">
             <button
               type="button"
-              onClick={onToggleDeep}
-              aria-pressed={deep}
-              aria-label="Deep thinking"
+              onClick={() => setMenuOpen((v) => !v)}
+              aria-expanded={menuOpen}
+              aria-label="Prompt tools"
               className={cn(
-                "flex h-7 w-7 items-center justify-center rounded-full border transition-colors",
-                deep ? activeTone : idleTone
+                "flex h-8 w-8 items-center justify-center rounded-full transition-colors",
+                menuOpen || deep || listening ? activeTone : "text-muted hover:bg-field hover:text-ink"
               )}
             >
-              <Brain size={14} />
+              <Plus size={16} />
             </button>
-          </PromptInputAction>
-          <PromptInputAction tooltip="Paste text">
-            <button
-              type="button"
-              onClick={onTogglePaste}
-              aria-pressed={pasteMode}
-              aria-label="Paste text"
-              className={cn(
-                "flex h-7 w-7 items-center justify-center rounded-full border transition-colors",
-                pasteMode ? activeTone : idleTone
-              )}
-            >
-              <ClipboardPaste size={14} />
-            </button>
-          </PromptInputAction>
-          <PromptInputAction tooltip={listening ? "Stop dictation" : "Dictate"}>
-            <button
-              type="button"
-              onClick={onToggleMic}
-              aria-pressed={listening}
-              aria-label="Dictate"
-              className={cn(
-                "flex h-7 w-7 items-center justify-center rounded-full border transition-colors",
-                listening ? activeTone : idleTone
-              )}
-            >
-              <Mic size={14} />
-            </button>
-          </PromptInputAction>
-        </div>
-        <PromptInputAction tooltip={sending ? "Stop" : "Send"}>
+
+            {menuOpen && (
+              <div className="absolute bottom-full left-0 z-50 mb-2 w-56 overflow-hidden rounded-md border border-hairline-soft bg-canvas p-1 shadow-overlay">
+                <button
+                  type="button"
+                  onClick={onToggleDeep}
+                  aria-pressed={deep}
+                  className={cn(menuItem, deep && "bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:text-sky-300")}
+                >
+                  <Brain size={14} />
+                  <span className="flex-1 text-left">Deep thinking</span>
+                  {deep && <Check size={13} />}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onTogglePaste();
+                    setMenuOpen(false);
+                  }}
+                  className={menuItem}
+                >
+                  <ClipboardPaste size={14} />
+                  <span className="flex-1 text-left">Paste text</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onToggleMic();
+                    setMenuOpen(false);
+                  }}
+                  className={cn(menuItem, listening && "bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:text-sky-300")}
+                >
+                  <Mic size={14} />
+                  <span className="flex-1 text-left">{listening ? "Stop dictation" : "Dictate"}</span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          <PromptInputTextarea
+            placeholder={listening ? "Listening…" : "Ask anything…"}
+            className="flex-1 px-2 py-1.5"
+          />
+
           <Button
             type="button"
             onClick={sending ? onStop : onSubmit}
@@ -108,8 +135,8 @@ export default function AssistantPromptBar({
           >
             {sending ? <Square size={12} fill="currentColor" /> : <ArrowUp size={16} />}
           </Button>
-        </PromptInputAction>
-      </PromptInputActions>
-    </PromptInput>
+        </div>
+      </PromptInput>
+    </div>
   );
 }

@@ -508,7 +508,7 @@ export default function AssistantPage() {
         {/* Stream / minimal empty state */}
         <div ref={scrollRef} className="no-scrollbar min-h-0 flex-1 overflow-y-auto">
           {empty ? (
-            <div className="mx-auto flex h-full w-full max-w-2xl flex-col items-center justify-center px-md pb-28 text-center">
+            <div className="mx-auto flex h-full w-full max-w-2xl flex-col items-center justify-center px-md pb-24 text-center">
               <p className="text-h3 text-ink">
                 {greeting}, {firstName}.
               </p>
@@ -522,7 +522,7 @@ export default function AssistantPage() {
               </div>
             </div>
           ) : (
-            <div className="mx-auto flex w-full max-w-2xl flex-col gap-md pb-40 pt-md">
+            <div className="mx-auto flex w-full max-w-2xl flex-col gap-md pb-28 pt-md">
               {messages.map((m) =>
                 m.role === "user" ? (
                   <div key={m.id} className="flex justify-end">
