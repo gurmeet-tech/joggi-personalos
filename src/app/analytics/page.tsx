@@ -23,10 +23,7 @@ interface AnalyticsData {
   range: { from: string; to: string };
   studyByDay: Array<{ date: string; actual: number; planned: number }>;
   studyBySubject: Array<{ subject: string; minutes: number }>;
-  scoreBySubject: Array<{ subject: string; avgScore: number | null; attempts: number }>;
   chapterMastery: Array<{ subject: string; notStarted: number; inProgress: number; revision: number; mastered: number }>;
-  mockHistory: Array<{ title: string; subject: string; pct: number; score: number; max: number; date: string; mode: string }>;
-  objectiveAccuracy: number | null;
   revisionDueNow: number;
   englishTrend: Array<{ date: string; wpm: number; fillers: number; words: number; type: string }>;
   englishMinutes: number;
@@ -48,10 +45,8 @@ export default function AnalyticsPage() {
   if (!data) return null;
 
   const totalStudy = data.studyByDay.reduce((a, d) => a + d.actual, 0);
-  const avgMock = data.mockHistory.length ? Math.round(data.mockHistory.reduce((a, m) => a + m.pct, 0) / data.mockHistory.length) : null;
-  const latestMock = data.mockHistory[data.mockHistory.length - 1];
-  const firstMock = data.mockHistory[0];
-  const mockDelta = latestMock && firstMock && data.mockHistory.length > 1 ? latestMock.pct - firstMock.pct : null;
+  const totalMastered = data.chapterMastery.reduce((a, c) => a + c.mastered, 0);
+  const totalChapters = data.chapterMastery.reduce((a, c) => a + c.notStarted + c.inProgress + c.revision + c.mastered, 0);
 
   return (
     <div>
@@ -68,9 +63,9 @@ export default function AnalyticsPage() {
 
       <div className="grid gap-md md:grid-cols-4">
         <Stat label="Total study time" value={`${Math.round(totalStudy / 60)}h`} hint={`${totalStudy} minutes logged`} />
-        <Stat label="Avg mock score" value={avgMock != null ? `${avgMock}%` : "—"} hint={mockDelta != null ? `${mockDelta >= 0 ? "+" : ""}${mockDelta}% across window` : "Not enough mocks"} />
-        <Stat label="Objective accuracy" value={data.objectiveAccuracy != null ? `${data.objectiveAccuracy}%` : "—"} hint="MCQ + true/false + assertion + matching" />
+        <Stat label="Chapters mastered" value={`${totalMastered}/${totalChapters}`} hint="Across every subject" />
         <Stat label="English practice" value={`${data.englishMinutes}m`} hint={`${data.englishTrend.length} sessions`} />
+        <Stat label="Tasks done" value={`${data.taskStats.done}/${data.taskStats.total}`} hint="In this window" />
       </div>
 
       <div className="mt-lg grid gap-md lg:grid-cols-2">
@@ -92,26 +87,6 @@ export default function AnalyticsPage() {
         </Card>
 
         <Card>
-          <h3 className="text-title text-ink">Mock score trend</h3>
-          <p className="text-caption text-muted">Percentage per submitted paper</p>
-          <div className="mt-md h-64">
-            {data.mockHistory.length === 0 ? (
-              <EmptyState title="No exams yet" description="Generate and submit a paper to see your trend." />
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={data.mockHistory.map((m, i) => ({ ...m, idx: i + 1 }))} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
-                  <XAxis dataKey="idx" tick={{ fontSize: 10, fill: "var(--chart-axis)" }} tickMargin={4} />
-                  <YAxis domain={[0, 100]} ticks={[0, 25, 50, 75, 100]} tick={{ fontSize: 10, fill: "var(--chart-axis)" }} width={36} tickMargin={4} />
-                  <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid var(--chart-tip-border)", background: "var(--chart-tip-bg)", color: "var(--chart-ink)", fontSize: 12 }} labelFormatter={(l) => `Attempt ${l}`} />
-                  <Line type="monotone" dataKey="pct" stroke="var(--chart-ink)" strokeWidth={2} dot={{ r: 3, fill: "var(--chart-ink)" }} name="Score %" />
-                </LineChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-        </Card>
-
-        <Card>
           <h3 className="text-title text-ink">Study time by subject</h3>
           <div className="mt-md h-64">
             {data.studyBySubject.length === 0 ? (
@@ -127,21 +102,6 @@ export default function AnalyticsPage() {
                 </BarChart>
               </ResponsiveContainer>
             )}
-          </div>
-        </Card>
-
-        <Card>
-          <h3 className="text-title text-ink">Average score by subject</h3>
-          <div className="mt-md h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data.scoreBySubject.map((s) => ({ ...s, avgScore: s.avgScore ?? 0 }))} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
-                <XAxis dataKey="subject" tick={{ fontSize: 10, fill: "var(--chart-axis)" }} tickMargin={4} />
-                <YAxis domain={[0, 100]} ticks={[0, 25, 50, 75, 100]} tick={{ fontSize: 10, fill: "var(--chart-axis)" }} width={36} tickMargin={4} />
-                <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid var(--chart-tip-border)", background: "var(--chart-tip-bg)", color: "var(--chart-ink)", fontSize: 12 }} />
-                <Bar dataKey="avgScore" fill="#0066ff" radius={[8, 8, 0, 0]} name="Avg %" />
-              </BarChart>
-            </ResponsiveContainer>
           </div>
         </Card>
       </div>

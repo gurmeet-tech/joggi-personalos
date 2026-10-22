@@ -14,8 +14,6 @@ type Chapter = {
   confidence: number;
   completion: number;
   lastStudiedAt: string | null;
-  lastTestScore: number | null;
-  attempts: number;
   weakConcepts: string;
   nextRevisionAt: string | null;
   topics: Topic[];
@@ -28,7 +26,7 @@ const STATUS_LABEL: Record<string, string> = {
   IN_PROGRESS: "Learning",
   STUDIED: "Studied once",
   REVISION_REQUIRED: "Revision required",
-  TEST_PENDING: "Test pending",
+  TEST_PENDING: "Needs practice",
   MASTERED: "Mastered",
 };
 
@@ -124,7 +122,7 @@ export default function SyllabusPage() {
       {!subjects?.length && (
         <EmptyState
           title="No subjects yet"
-          description="Add your Class 12 subjects to unlock the exam generator, planner and analytics."
+          description="Add your Class 12 subjects to unlock the planner, revision centre and analytics."
           action={<Button onClick={() => setShowAddSubject(true)}>Add your first subject</Button>}
         />
       )}
@@ -175,8 +173,6 @@ export default function SyllabusPage() {
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-body-sm text-ink">{c.name}</p>
                             <p className="mt-xxs text-caption text-muted">
-                              {c.attempts} attempt(s)
-                              {c.lastTestScore != null && ` · last ${Math.round(c.lastTestScore)}%`}
                               {c.lastStudiedAt && ` · studied ${formatDate(c.lastStudiedAt)}`}
                               {c.nextRevisionAt && ` · revise ${formatDate(c.nextRevisionAt)}`}
                             </p>

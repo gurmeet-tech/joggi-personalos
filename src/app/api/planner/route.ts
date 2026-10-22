@@ -46,7 +46,6 @@ export async function POST(req: NextRequest) {
         status: c.status,
         confidence: c.confidence,
         nextRevisionAt: c.nextRevisionAt?.toISOString().slice(0, 10) ?? null,
-        lastTestScore: c.lastTestScore,
       })),
     })),
     dailyHours: parsed.data.dailyHours ?? profile?.dailyStudyHours ?? 4,

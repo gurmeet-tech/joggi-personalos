@@ -1,12 +1,7 @@
-import { generateDemoPaper } from "./demo-engine";
 import { factsForChapter } from "../factbank";
-import { CURRICULUM, findSubject } from "../curriculum";
 import type {
-  EvaluationResult,
   EnglishFeedback,
   FeedbackMetrics,
-  GeneratedPaper,
-  PaperRequest,
   StudyPlanResult,
   PlanItem,
 } from "../types";
@@ -28,7 +23,7 @@ export function aiStatus(): AiStatus {
   if (!key) {
     return {
       mode: "demo",
-      reason: "No AI_API_KEY configured. Papers and feedback are produced by the built-in offline generator (clearly labelled DEMO).",
+      reason: "No AI_API_KEY configured. Replies and feedback fall back to the built-in offline engine (clearly labelled DEMO).",
     };
   }
   return {
@@ -70,275 +65,60 @@ async function liveChat<T>(
     const data = await res.json();
     const text = data?.choices?.[0]?.message?.content;
     if (!text) return null;
-    return JSON.parse(text) as T;
+    return parseModelJson<T>(text);
   } catch {
     return null;
   }
 }
 
-// ------------------------------------------------------------------
-// Paper generation
-// ------------------------------------------------------------------
-
-export async function generatePaper(req: PaperRequest): Promise<GeneratedPaper> {
-  const status = aiStatus();
-  if (status.mode === "live") {
-    const syllabus = (req.chapters || [])
-      .map((c) => {
-        const s = findSubject(req.subject);
-        const ch = s?.chapters.find((x) => x.name.toLowerCase() === c.toLowerCase());
-        return ch ? `${ch.name}: ${ch.topics.join(", ")}` : c;
-      })
-      .join("\n");
-    const mistakes = (req.previousMistakes || [])
-      .slice(0, 10)
-      .map((m) => `Q: ${m.question} | Correct: ${m.correctAnswer}`)
-      .join("\n");
-    const user = `Generate a Class 12 ${process.env.AI_BOARD || "CBSE"} examination paper.
-Subject: ${req.subject}
-Mode: ${req.mode}
-Chapters/syllabus:
-${syllabus || "Use standard Class 12 syllabus for this subject"}
-Difficulty: ${req.difficulty}
-Number of questions: ${req.questionCount}
-Question types allowed: ${req.questionTypes.join(", ")}
-Duration minutes: ${req.durationMinutes}
-Language: ${req.language}
-${req.negativeMarking ? "Negative marking: yes, 1/3 deducted per wrong objective answer." : "Negative marking: none."}
-${req.weakTopics?.length ? `Prioritise weak topics: ${req.weakTopics.join(", ")}` : ""}
-${mistakes ? `Previously answered incorrectly (avoid repeating; can re-test concept):\n${mistakes}` : ""}
-${req.materials ? `Ground the paper in this user-provided material:\n${req.materials.slice(0, 6000)}` : ""}
-
-Return JSON: {"title": string, "instructions": string[], "totalMarks": number, "questions": [{"number": number, "type": "MCQ"|"TRUE_FALSE"|"ASSERTION_REASON"|"MATCHING"|"SHORT"|"LONG"|"CASE"|"NUMERICAL"|"DERIVATION", "text": string, "options": [{"id":"a","text":string}], "marks": number, "topics": string[], "difficulty": "easy"|"moderate"|"difficult", "answer": string, "solution": string, "scheme": string[], "choiceGroup": number|null}]}.
-Marks must add up to totalMarks. Include an answer, worked solution and marking scheme for every question. No duplicate questions.`;
-    const live = await liveChat<GeneratedPaper>(
-      "You are a rigorous Class 12 CBSE board examination paper setter. Produce board-appropriate, unambiguous questions with accurate marking schemes. Never invent official board rules; generate academically sound papers.",
-      user,
-      '{"title","instructions","totalMarks","questions":[...]}'
-    );
-    if (live?.questions?.length) {
-      return { ...live, mode: req.mode, subject: req.subject, chapterNames: req.chapters, difficulty: req.difficulty, questionTypes: live.questions.map((q) => q.type), language: req.language, durationMinutes: req.durationMinutes, markingScheme: { negativeMarking: !!req.negativeMarking, notes: "" }, isDemo: false };
+/**
+ * Models occasionally wrap their JSON in prose or code fences even when asked for
+ * bare JSON. Pull the first balanced JSON object out of the response.
+ */
+function parseModelJson<T>(text: string): T | null {
+  const trimmed = text.trim();
+  try {
+    return JSON.parse(trimmed) as T;
+  } catch {
+    /* fall through to extraction */
+  }
+  const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  const candidate = fenced?.[1]?.trim() ?? trimmed;
+  try {
+    return JSON.parse(candidate) as T;
+  } catch {
+    /* fall through to extraction */
+  }
+  const start = candidate.indexOf("{");
+  if (start === -1) return null;
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let i = start; i < candidate.length; i++) {
+    const ch = candidate[i];
+    if (escaped) {
+      escaped = false;
+      continue;
     }
-  }
-  return generateDemoPaper(req);
-}
-
-// ------------------------------------------------------------------
-// Objective grading
-// ------------------------------------------------------------------
-
-function normalise(s: string): string {
-  return (s || "")
-    .toLowerCase()
-    .replace(/[^a-z0-9-]/g, "")
-    .trim();
-}
-
-export function gradeObjective(type: string, answer: string, response: string): boolean {
-  const a = normalise(answer);
-  const r = normalise(response);
-  if (!r) return false;
-  if (type === "MATCHING") {
-    const parse = (s: string) =>
-      s
-        .split(/[,;\n]/)
-        .map((p) => p.replace(/[^a-zA-Z0-9-]/g, "").toLowerCase())
-        .filter(Boolean)
-        .sort();
-    const pa = parse(answer);
-    const pr = parse(response);
-    if (pa.length !== pr.length) return false;
-    return pa.every((x, i) => x === pr[i]);
-  }
-  if (type === "TRUE_FALSE") {
-    const t = r.startsWith("t") ? "true" : r.startsWith("f") ? "false" : r;
-    return t === a;
-  }
-  return a === r;
-}
-
-// ------------------------------------------------------------------
-// Subjective evaluation
-// ------------------------------------------------------------------
-
-export async function evaluateSubjective(
-  questions: Array<{ id: string; number: number; type: string; text: string; answer: string; scheme: string[]; marks: number; topics: string[] }>,
-  responses: Record<string, string>,
-  paperTitle: string
-): Promise<{ scores: Record<string, { awarded: number; comment: string }>; isDemo: boolean }> {
-  const subjective = questions.filter((q) => !["MCQ", "TRUE_FALSE", "ASSERTION_REASON", "MATCHING"].includes(q.type) && responses[q.id]?.trim());
-  const status = aiStatus();
-
-  if (status.mode === "live" && subjective.length) {
-    const payload = subjective.map((q) => ({
-      id: q.id,
-      question: q.text,
-      markingScheme: q.scheme,
-      maxMarks: q.marks,
-      studentAnswer: responses[q.id],
-    }));
-    const live = await liveChat<{ evaluations: Array<{ id: string; awarded: number; comment: string }> }>(
-      "You are a strict but fair Class 12 board examiner. Award marks only for correct concepts, steps and reasoning as per the marking scheme. Do not award full marks for vague or off-topic answers. Award partial credit where due.",
-      `Paper: ${paperTitle}\nEvaluate each answer:\n${JSON.stringify(payload)}`,
-      '{"evaluations":[{"id","awarded","comment"}]}',
-      0.2
-    );
-    if (live?.evaluations?.length) {
-      const scores: Record<string, { awarded: number; comment: string }> = {};
-      for (const e of live.evaluations) {
-        const q = subjective.find((x) => x.id === e.id);
-        scores[e.id] = { awarded: Math.max(0, Math.min(e.awarded, q?.marks ?? 0)), comment: e.comment };
-      }
-      return { scores, isDemo: false };
+    if (ch === "\\") {
+      escaped = true;
+      continue;
     }
-  }
-
-  // Demo evaluation: concept-coverage heuristic against the marking scheme.
-  const scores: Record<string, { awarded: number; comment: string }> = {};
-  for (const q of subjective) {
-    const resp = responses[q.id] || "";
-    const words = resp.trim().split(/\s+/).filter(Boolean);
-    const respLower = resp.toLowerCase();
-    const scheme = q.scheme.length ? q.scheme : [`Address ${q.topics.join(", ")}`];
-    let hits = 0;
-    const topicWords = q.topics.flatMap((t) => t.toLowerCase().split(/\s+/)).filter((w) => w.length > 3);
-    const matchedConcepts = topicWords.filter((w) => respLower.includes(w));
-    const conceptCoverage = topicWords.length ? matchedConcepts.length / topicWords.length : 0.5;
-    const lengthFactor = Math.min(1, words.length / (q.type === "LONG" ? 80 : q.type === "CASE" ? 60 : 25));
-    for (const point of scheme) {
-      const key = point.toLowerCase().match(/[a-z]{5,}/g) || [];
-      if (key.some((k) => respLower.includes(k))) hits++;
-    }
-    const schemeHit = scheme.length ? hits / scheme.length : 0.5;
-    const raw = 0.45 * conceptCoverage + 0.3 * lengthFactor + 0.25 * schemeHit;
-    let awarded = Math.round(raw * q.marks * 2) / 2;
-    if (words.length < 4) awarded = Math.min(awarded, 0);
-    awarded = Math.max(0, Math.min(awarded, q.marks));
-    scores[q.id] = {
-      awarded,
-      comment:
-        words.length < 4
-          ? "Answer is too short to award credit. Write at least a full sentence addressing the question."
-          : `Demo evaluator: matched ${matchedConcepts.length}/${topicWords.length || 0} key concept terms and ${hits}/${scheme.length} marking-scheme points. Configure an AI key for examiner-grade evaluation.`,
-    };
-  }
-  return { scores, isDemo: true };
-}
-
-export async function buildEvaluationResult(
-  questions: Array<{ id: string; number: number; type: string; text: string; answer: string; solution: string; scheme: string[]; marks: number; topics: string[] }>,
-  responses: Record<string, string>,
-  paperTitle: string
-): Promise<EvaluationResult> {
-  const objectiveTypes = new Set(["MCQ", "TRUE_FALSE", "ASSERTION_REASON", "MATCHING"]);
-  const items: EvaluationResult["items"] = [];
-  const topicStats: Record<string, { correct: number; total: number }> = {};
-  const mistakes: EvaluationResult["mistakes"] = [];
-  let objectiveScore = 0;
-  let objectiveMax = 0;
-  let subjectiveScore = 0;
-  let subjectiveMax = 0;
-
-  const subjectiveQs = questions.filter((q) => !objectiveTypes.has(q.type));
-  const { scores, isDemo } = await evaluateSubjective(
-    subjectiveQs.map((q) => ({ id: q.id, number: q.number, type: q.type, text: q.text, answer: q.answer, scheme: q.scheme, marks: q.marks, topics: q.topics })),
-    responses,
-    paperTitle
-  );
-
-  for (const q of questions) {
-    const resp = (responses[q.id] || "").trim();
-    for (const t of q.topics) {
-      topicStats[t] = topicStats[t] || { correct: 0, total: 0 };
-      topicStats[t].total += 1;
-    }
-    if (objectiveTypes.has(q.type)) {
-      objectiveMax += q.marks;
-      const correct = gradeObjective(q.type, q.answer, resp);
-      if (correct) {
-        objectiveScore += q.marks;
-        q.topics.forEach((t) => (topicStats[t].correct += 1));
-      } else {
-        if (resp) {
-          mistakes.push({
-            question: q.text,
-            myAnswer: resp,
-            correctAnswer: q.answer,
-            reasoning: q.solution,
-            category: !resp ? "NOT_STUDIED" : "CONCEPT_GAP",
-            topic: q.topics[0] || "",
-          });
+    if (ch === '"') inString = !inString;
+    if (inString) continue;
+    if (ch === "{") depth++;
+    else if (ch === "}") {
+      depth--;
+      if (depth === 0) {
+        try {
+          return JSON.parse(candidate.slice(start, i + 1)) as T;
+        } catch {
+          return null;
         }
       }
-      items.push({
-        questionId: q.id,
-        number: q.number,
-        awarded: correct ? q.marks : 0,
-        maxMarks: q.marks,
-        correct,
-        comment: correct ? "Correct." : resp ? "Incorrect — review the solution below." : "Left unanswered.",
-        modelAnswer: q.answer,
-        scheme: q.scheme,
-        kind: "objective",
-      });
-    } else {
-      subjectiveMax += q.marks;
-      const s = scores[q.id] || { awarded: 0, comment: "No answer provided." };
-      subjectiveScore += s.awarded;
-      if (s.awarded > q.marks * 0.6) q.topics.forEach((t) => (topicStats[t].correct += 1));
-      if (s.awarded < q.marks * 0.5) {
-        mistakes.push({
-          question: q.text,
-          myAnswer: resp || "(unanswered)",
-          correctAnswer: q.answer,
-          reasoning: q.solution,
-          category: !resp ? "NOT_STUDIED" : "CONCEPT_GAP",
-          topic: q.topics[0] || "",
-        });
-      }
-      items.push({
-        questionId: q.id,
-        number: q.number,
-        awarded: s.awarded,
-        maxMarks: q.marks,
-        correct: null,
-        comment: s.comment,
-        modelAnswer: q.answer,
-        scheme: q.scheme,
-        kind: "subjective",
-      });
     }
   }
-
-  const ranked = Object.entries(topicStats).map(([topic, s]) => ({ topic, ...s, pct: s.total ? s.correct / s.total : 0 }));
-  const strongest = ranked.filter((r) => r.pct >= 0.7).sort((a, b) => b.pct - a.pct).slice(0, 5).map((r) => r.topic);
-  const weakest = ranked.filter((r) => r.pct < 0.7).sort((a, b) => a.pct - b.pct).slice(0, 5).map((r) => r.topic);
-  const totalScore = objectiveScore + subjectiveScore;
-  const maxScore = objectiveMax + subjectiveMax;
-  const pctScore = maxScore ? Math.round((totalScore / maxScore) * 100) : 0;
-
-  const summary =
-    `Scored ${totalScore}/${maxScore} (${pctScore}%). ` +
-    `Objective accuracy: ${objectiveScore}/${objectiveMax}. ` +
-    `Subjective (estimated): ${subjectiveScore}/${subjectiveMax}` +
-    (isDemo ? " — estimated by the offline demo evaluator; configure an AI key for examiner-grade marking." : " — evaluated against the marking scheme.") +
-    (strongest.length ? ` Strongest: ${strongest.join(", ")}.` : "") +
-    (weakest.length ? ` Focus next on: ${weakest.join(", ")}.` : "");
-
-  return {
-    items,
-    objectiveScore,
-    objectiveMax,
-    subjectiveScore,
-    subjectiveMax,
-    totalScore,
-    maxScore,
-    strongest,
-    weakest,
-    mistakes,
-    summary,
-    isDemo,
-  };
+  return null;
 }
 
 // ------------------------------------------------------------------
@@ -346,7 +126,7 @@ export async function buildEvaluationResult(
 // ------------------------------------------------------------------
 
 export interface PlanContext {
-  subjects: Array<{ name: string; chapters: Array<{ name: string; status: string; confidence: number; nextRevisionAt?: string | null; lastTestScore?: number | null }> }>;
+  subjects: Array<{ name: string; chapters: Array<{ name: string; status: string; confidence: number; nextRevisionAt?: string | null }> }>;
   dailyHours: number;
   examDates?: string | null;
   target?: number | null;
@@ -358,18 +138,18 @@ export async function generateStudyPlan(ctx: PlanContext): Promise<StudyPlanResu
   const days = 7;
   if (status.mode === "live") {
     const live = await liveChat<StudyPlanResult>(
-      "You are an expert Class 12 study coach. Build realistic day-by-day study plans using active recall, spaced revision and mock tests. Never schedule more hours than available. RULE: each week must fully master exactly ONE chapter of Physics and ONE chapter of Chemistry — study it, practise it, then schedule a MOCK test on it and a spaced REVISION, so the chapter is destroyed within the week before moving on. Do not scatter across many chapters.",
-      `Context: ${JSON.stringify(ctx)}. Produce a ${days}-day plan with items: {"days":[{"date","items":[{"id","title","subject","chapter","type":"LEARN"|"PRACTICE"|"REVISION"|"MOCK"|"ENGLISH"|"BREAK","minutes","reason"}],"totalMinutes"}],"rationale":string}. Focus the week on mastering one Physics and one Chemistry chapter end to end.`,
+      "You are an expert Class 12 study coach. Build realistic day-by-day study plans using active recall and spaced revision. Never schedule more hours than available. RULE: each week must fully master exactly ONE chapter of Physics and ONE chapter of Chemistry — study it, practise it, then schedule a spaced REVISION, so the chapter is destroyed within the week before moving on. Do not scatter across many chapters.",
+      `Context: ${JSON.stringify(ctx)}. Produce a ${days}-day plan with items: {"days":[{"date","items":[{"id","title","subject","chapter","type":"LEARN"|"PRACTICE"|"REVISION"|"ENGLISH"|"BREAK","minutes","reason"}],"totalMinutes"}],"rationale":string}. Focus the week on mastering one Physics and one Chemistry chapter end to end.`,
       '{"days":[...],"rationale":string}'
     );
     if (live?.days?.length) return { ...live, isDemo: false };
   }
 
   // Demo planner: prioritise weak/overdue chapters, space revisions, fit daily hours.
-  const flat: Array<{ subject: string; chapter: string; status: string; confidence: number; score: number | null; revision: string | null }> = [];
+  const flat: Array<{ subject: string; chapter: string; status: string; confidence: number; revision: string | null }> = [];
   for (const s of ctx.subjects) {
     for (const c of s.chapters) {
-      flat.push({ subject: s.name, chapter: c.name, status: c.status, confidence: c.confidence, score: c.lastTestScore ?? null, revision: c.nextRevisionAt ?? null });
+      flat.push({ subject: s.name, chapter: c.name, status: c.status, confidence: c.confidence, revision: c.nextRevisionAt ?? null });
     }
   }
   const today = todayISO();
@@ -378,9 +158,8 @@ export async function generateStudyPlan(ctx: PlanContext): Promise<StudyPlanResu
     if (a.status === "NOT_STARTED") p += 40;
     if (a.status === "IN_PROGRESS") p += 30;
     if (a.status === "REVISION_REQUIRED") p += 35;
-    if (a.status === "TEST_PENDING") p += 25;
+    if (a.status === "STUDIED") p += 15;
     if (a.confidence <= 2) p += 20;
-    if (a.score != null && a.score < 50) p += 25;
     if (a.revision && a.revision <= today) p += 30;
     return -p;
   };
@@ -418,11 +197,9 @@ export async function generateStudyPlan(ctx: PlanContext): Promise<StudyPlanResu
         minutes,
         reason: isRevision
           ? "Spaced revision to move this chapter into long-term memory."
-          : entry.score != null && entry.score < 50
-            ? `Last test score was ${entry.score}%. Targeted practice will close the gap.`
-            : entry.confidence <= 2
-              ? `Confidence is low (${entry.confidence}/5). Focused session will raise it.`
-              : "Not yet completed — scheduled early to stay ahead of exams.",
+          : entry.confidence <= 2
+            ? `Confidence is low (${entry.confidence}/5). Focused session will raise it.`
+            : "Not yet completed — scheduled early to stay ahead of exams.",
       });
       remaining -= minutes + 5;
       if (remaining >= 25 && items.length % 3 === 2) {
@@ -432,11 +209,11 @@ export async function generateStudyPlan(ctx: PlanContext): Promise<StudyPlanResu
     }
     if (d === 3 || d === 6) {
       items.push({
-        id: `${date}-mock`,
-        title: `Timed mock test — this week's ${workingSet.map((c) => c.chapter).join(" + ")}`,
-        type: "MOCK",
+        id: `${date}-recall`,
+        title: `Recall check — this week's ${workingSet.map((c) => c.chapter).join(" + ")}`,
+        type: "PRACTICE",
         minutes: Math.min(60, Math.max(30, perDayMinutes / 3)),
-        reason: "Weekly retrieval practice confirms the chapter is truly mastered before moving on.",
+        reason: "Close the notebook and write everything you remember about the chapter — recall is what proves mastery.",
       });
     }
     items.push({
@@ -451,7 +228,7 @@ export async function generateStudyPlan(ctx: PlanContext): Promise<StudyPlanResu
 
   return {
     days: planDays,
-    rationale: `Prioritised by syllabus gap, confidence and recent test scores across ${flat.length} chapters. Each day fits your ${ctx.dailyHours}h availability with built-in revision spacing and a weekly mock. Re-run the planner after missed sessions or new test results.`,
+    rationale: `Prioritised by syllabus gap, confidence and revision schedule across ${flat.length} chapters. Each day fits your ${ctx.dailyHours}h availability with built-in revision spacing and a weekly recall check. Re-run the planner after missed sessions or new study data.`,
     isDemo: true,
   };
 }
@@ -588,14 +365,16 @@ export async function generateEnglishFeedback(
 
 export interface AssistantContext {
   profile?: { name: string; board: string };
-  subjects: Array<{ name: string; chapters: number; mastered: number; avgScore: number | null }>;
+  subjects: Array<{ name: string; chapters: number; mastered: number; inProgress: number }>;
   todayTasks: Array<{ title: string; status: string; priority: string }>;
   overdue: Array<{ title: string; dueAt: string }>;
-  recentResults: Array<{ title: string; score: number; max: number; date: string }>;
+  weakChapters: Array<{ name: string; subject: string; confidence: number; completion: number }>;
   revisionDue: string[];
   leadsDue: Array<{ name: string; status: string; nextFollowUpAt: string }>;
   englishStreak: number;
   studyMinutesToday: number;
+  /** Verified syllabus facts for the chapters the user is asking about. */
+  facts?: Array<{ chapter: string; facts: string[] }>;
 }
 
 /** The chat UI renders plain text, so strip markdown the model tends to emit. */
@@ -618,16 +397,21 @@ export async function assistantReply(
 
   // Deterministic local intents (work in both modes; instant and data-grounded).
   if (/weakest|weak chapters|bad at/.test(lastUser)) {
-    const weakish = ctx.subjects
-      .flatMap((s) => Array.from({ length: 1 }, () => ({ name: s.name, avg: s.avgScore, mastered: s.mastered, chapters: s.chapters })))
-      .filter((s) => s.avg != null && (s.avg as number) < 60);
-    if (weakish.length) {
+    const weak = ctx.weakChapters.slice(0, 5);
+    if (weak.length) {
       return {
-        reply: `Based on your saved test results, your weakest areas are: ${weakish.map((s) => `${s.name} (avg ${Math.round(s.avg as number)}%, ${s.mastered}/${s.chapters} chapters mastered)`).join("; ")}. Generate a weak-area test from the AI Exam Studio, or ask me to draft a 7-day revision plan.`,
+        reply: `Your weakest chapters right now: ${weak.map((c) => `${c.name} (${c.subject}, confidence ${c.confidence}/5, ${c.completion}% covered)`).join("; ")}. Start a focused block on the first one, then ask me to draft a 7-day revision plan.`,
         isDemo: true,
       };
     }
-    return { reply: "I don't yet have test results showing a weak subject. Take a chapter test in the AI Exam Studio and I'll track your weak areas from there.", isDemo: true };
+    const behind = ctx.subjects.filter((s) => s.mastered < s.chapters);
+    if (behind.length) {
+      return {
+        reply: `No chapter is flagged weak yet, but these subjects still have unmastered chapters: ${behind.map((s) => `${s.name} (${s.mastered}/${s.chapters} mastered)`).join("; ")}. Ask me to build a 7-day plan around them.`,
+        isDemo: true,
+      };
+    }
+    return { reply: "Everything is marked mastered. Tell me what you want to revise deeper and I'll plan it.", isDemo: true };
   }
   if (/overdue|pending tasks|what tasks/.test(lastUser)) {
     if (!ctx.overdue.length) return { reply: "No overdue tasks. Your task list is under control — check the Tasks page to plan what's next.", isDemo: true };
@@ -647,12 +431,15 @@ export async function assistantReply(
     return { reply: parts.join(" "), isDemo: true };
   }
   if (/summar|week|how am i doing/.test(lastUser)) {
-    const results = ctx.recentResults.slice(0, 5);
-    const avg = results.length ? Math.round(results.reduce((s, r) => s + (r.max ? (r.score / r.max) * 100 : 0), 0) / results.length) : null;
-    return {
-      reply: `This period: ${results.length} exam attempt(s) recorded${avg != null ? ` with an average of ${avg}%` : ""}. English speaking streak: ${ctx.englishStreak} day(s). ${ctx.subjects.filter((s) => s.mastered > 0).map((s) => `${s.name}: ${s.mastered} chapters mastered`).join("; ") || "No chapters marked mastered yet — pick one high-priority chapter and push it to mastered this week."}`,
-      isDemo: true,
-    };
+    const mastered = ctx.subjects.filter((s) => s.mastered > 0);
+    const behind = ctx.subjects.filter((s) => s.mastered < s.chapters);
+    const parts: string[] = [];
+    if (mastered.length) parts.push(`Mastered so far: ${mastered.map((s) => `${s.name} ${s.mastered}/${s.chapters}`).join("; ")}.`);
+    if (behind.length) parts.push(`Still open: ${behind.map((s) => `${s.name} ${s.mastered}/${s.chapters}`).join("; ")}.`);
+    if (ctx.revisionDue.length) parts.push(`Revision due: ${ctx.revisionDue.slice(0, 4).join(", ")}.`);
+    if (ctx.overdue.length) parts.push(`${ctx.overdue.length} task(s) overdue.`);
+    parts.push(`English speaking streak: ${ctx.englishStreak} day(s).`);
+    return { reply: parts.join(" "), isDemo: true };
   }
 
   const status = aiStatus();
@@ -660,12 +447,24 @@ export async function assistantReply(
     const deepNote = opts.deep
       ? " Deep thinking is ON: work through the problem step by step, cross-check the reasoning against the workspace context, then give a short reasoning summary (2 to 4 short lines) before the final answer."
       : "";
+    const factNote = ctx.facts?.length
+      ? " The VERIFIED_FACTS block contains accurate syllabus facts. Ground any concept explanation in those facts. If the answer is not covered by them, say what you know but mark it as beyond the verified set — never invent a formula, value or definition."
+      : "";
     const live = await liveChat<{ reply: string }>(
-      "You are the MY OS personal assistant for a Class 12 student. Use ONLY the provided workspace context. Never invent data. Be concise, specific and action-oriented. You may propose creating tasks, tests or plans but must ask for confirmation before creating anything. Reply in clean plain text only: never use markdown, asterisks, bold, headings or code fences. Keep it short — 2 to 4 sentences for simple answers, or a short numbered list for steps." + deepNote,
-      `Context: ${JSON.stringify(ctx)}\n\nConversation:\n${history.map((m) => `${m.role}: ${m.content}`).join("\n")}`,
+      "You are the MY OS personal assistant for a Class 12 student. Use ONLY the provided workspace context. Never invent data. Be concise, specific and action-oriented. You may propose creating tasks, sessions or plans but must ask for confirmation before creating anything. Reply in clean plain text only: never use markdown, asterisks, bold, headings or code fences. Keep it short — 2 to 4 sentences for simple answers, or a short numbered list for steps." + deepNote + factNote,
+      `Context: ${JSON.stringify(ctx)}\n\n${ctx.facts?.length ? `VERIFIED_FACTS:\n${ctx.facts.map((f) => `${f.chapter}:\n${f.facts.map((x) => `- ${x}`).join("\n")}`).join("\n\n")}\n\n` : ""}Conversation:\n${history.map((m) => `${m.role}: ${m.content}`).join("\n")}`,
       '{"reply":string}'
     );
     if (live?.reply) return { reply: plainText(live.reply), isDemo: false };
+  }
+
+  // Demo fallback: answer straight from the verified fact bank when we have one.
+  if (ctx.facts?.length) {
+    const block = ctx.facts[0];
+    return {
+      reply: `From the verified syllabus notes for ${block.chapter}:\n${block.facts.slice(0, 8).map((f) => `- ${f}`).join("\n")}`,
+      isDemo: true,
+    };
   }
 
   return {
@@ -705,5 +504,3 @@ export async function freelanceAssist(
   };
   return { text: drafts[kind] || drafts.OUTREACH, isDemo: true };
 }
-
-export { CURRICULUM };

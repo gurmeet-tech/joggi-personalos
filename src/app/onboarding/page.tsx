@@ -59,7 +59,7 @@ export default function OnboardingPage() {
     <div className="mx-auto max-w-2xl py-xl">
       <p className="label-cap">Setup</p>
       <h1 className="mt-xs text-h2 text-ink">Build your personal OS.</h1>
-      <p className="mt-sm text-body-lg text-muted">A few details let the exam engine, planner and assistant work with your real syllabus instead of guesses.</p>
+      <p className="mt-sm text-body-lg text-muted">A few details let the planner, revision centre and assistant work with your real syllabus instead of guesses.</p>
 
       <div className="mt-lg flex gap-xs">
         {steps.map((s, i) => (

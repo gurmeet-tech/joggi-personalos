@@ -2,7 +2,7 @@
   "name": "my-os",
   "version": "1.0.0",
   "private": true,
-  "description": "MY OS — Class 12 Personal Operating System: AI exam simulator, study planner, English lab, freelance CRM, and self-improvement.",
+  "description": "MY OS — Class 12 Personal Operating System: AI study planner, revision centre, English lab, freelance CRM, and self-improvement.",
   "engines": {
     "node": ">=18.18.0"
   },

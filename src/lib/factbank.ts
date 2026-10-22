@@ -657,3 +657,61 @@ export const FACT_BANK: Record<string, string[]> = {
 export function factsForChapter(chapter: string): string[] {
   return FACT_BANK[chapter] ?? [];
 }
+
+/** Words that carry no signal when matching a question against the fact bank. */
+const STOPWORDS = new Set([
+  "the", "and", "for", "with", "that", "this", "what", "why", "how", "when", "where",
+  "who", "which", "tell", "explain", "give", "about", "from", "into", "does", "are",
+  "was", "were", "has", "have", "had", "you", "your", "our", "its", "can", "could",
+  "should", "would", "there", "their", "them", "then", "than", "but", "not", "all",
+  "any", "some", "get", "got", "let", "use", "using", "used", "like", "just", "also",
+  "chapter", "subject", "syllabus", "notes", "note", "please", "help", "me", "my",
+  "know", "need", "want", "make", "made", "more", "most", "much", "many", "very",
+  "will", "shall", "may", "must", "out", "off", "over", "under", "again", "same",
+]);
+
+export interface FactHit {
+  chapter: string;
+  concept: string;
+  statement: string;
+  score: number;
+}
+
+/**
+ * Search the whole bank by concept name, so a question like "explain Gauss's law"
+ * finds the Gauss's law fact even though it never names the chapter.
+ */
+export function searchFacts(query: string, limit = 24): FactHit[] {
+  const q = (query || "").toLowerCase();
+  if (!q.trim()) return [];
+  const tokens = Array.from(new Set(q.match(/[a-z][a-z'’-]{2,}/g) ?? [])).filter(
+    (t) => !STOPWORDS.has(t)
+  );
+  if (!tokens.length) return [];
+
+  const hits: FactHit[] = [];
+  for (const [chapter, facts] of Object.entries(FACT_BANK)) {
+    const chapterLower = chapter.toLowerCase();
+    const chapterTokens = chapterLower.match(/[a-z][a-z'’-]{2,}/g) ?? [];
+    for (const fact of facts) {
+      const sep = fact.indexOf("—");
+      const concept = (sep === -1 ? fact : fact.slice(0, sep)).trim();
+      const statement = sep === -1 ? fact : fact.slice(sep + 1).trim();
+      const cl = concept.toLowerCase();
+      let score = 0;
+      if (cl.length > 3 && q.includes(cl)) score += 12;
+      for (const t of tokens) {
+        if (cl.includes(t)) score += 4;
+      }
+      // The chapter itself being named is a strong signal.
+      if (chapterLower.length > 3 && q.includes(chapterLower)) score += 20;
+      for (const t of chapterTokens) {
+        if (tokens.includes(t)) score += 6;
+      }
+      if (score === 0) continue;
+      hits.push({ chapter, concept, statement, score });
+    }
+  }
+  hits.sort((a, b) => b.score - a.score);
+  return hits.slice(0, limit);
+}

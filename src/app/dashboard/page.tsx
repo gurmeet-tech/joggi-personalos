@@ -4,11 +4,9 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useApi, Card, Spinner, ErrorState, Stat } from "@/components/ui";
 import { greetingForHour, minutesToHm, daysUntil, notifyTasksChanged } from "@/lib/utils";
-import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
-import { TrendingUp, ListTodo } from "lucide-react";
+import { ListTodo } from "lucide-react";
 import StudyTimer from "@/components/study-timer";
 import SpringCheck from "@/components/reactbits/SpringCheck";
-import QuickMcq from "@/components/quick-mcq";
 
 function boardExamDateISO(): string {
   const now = new Date();
@@ -23,8 +21,6 @@ interface Dash {
   actualMinutes: number;
   plannedMinutes: number;
   overall: { chapters: number; mastered: number; completion: number };
-  recentScores: Array<{ title: string; subject: string; score: number; max: number; pct: number; date: string }>;
-  performance: Array<{ idx: number; pct: number; subject: string; date: string }>;
   pendingTasks: Array<{ id: string; title: string; priority: string; category: string; dueAt: string | null }>;
   englishStreak: number;
 }
@@ -54,8 +50,6 @@ export default function DashboardPage() {
 
   const firstName = (data.profile?.name || "Gurmeet").split(" ")[0];
   const greeting = greetingForHour(new Date().getHours());
-  const avgScore = data.recentScores.length ? Math.round(data.recentScores.reduce((s, r) => s + r.pct, 0) / data.recentScores.length) : 0;
-  const bestScore = data.recentScores.length ? Math.max(...data.recentScores.map((r) => r.pct)) : 0;
   const daysLeft = Math.max(0, daysUntil(boardExamDateISO()));
 
   return (
@@ -125,64 +119,9 @@ export default function DashboardPage() {
         )}
       </Card>
 
-      {/* Quick 5-minute MCQ sprint */}
-      <QuickMcq />
-
       {/* Focus timer */}
       <Card className="mb-md">
         <StudyTimer onLogged={reload} />
-      </Card>
-
-      {/* Performance graph */}
-      <Card className="mb-md">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-xs">
-            <TrendingUp size={16} className="text-muted" />
-            <h2 className="text-title text-ink">Performance</h2>
-          </div>
-          <Link href="/analytics" className="text-caption text-muted underline hover:text-ink">
-            Analytics
-          </Link>
-        </div>
-        <div className="mt-xs flex items-center gap-md">
-          <span className="text-h3 text-ink">{avgScore}%</span>
-          <span className="text-body-sm text-muted">avg · best {bestScore}%</span>
-        </div>
-        <div className="mt-md h-44">
-          {data.performance.length === 0 ? (
-            <div className="flex h-full items-center justify-center text-center text-body-sm text-muted">
-              Take a test to unlock your performance graph.
-            </div>
-          ) : (
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={data.performance} margin={{ top: 12, right: 10, left: 0, bottom: 4 }}>
-                <defs>
-                  <linearGradient id="perf" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="var(--chart-ink)" stopOpacity={0.16} />
-                    <stop offset="100%" stopColor="var(--chart-ink)" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
-                <XAxis dataKey="idx" tick={{ fontSize: 10, fill: "var(--chart-axis)" }} axisLine={false} tickLine={false} tickMargin={4} />
-                <YAxis
-                  domain={[0, 100]}
-                  ticks={[0, 25, 50, 75, 100]}
-                  tick={{ fontSize: 10, fill: "var(--chart-axis)" }}
-                  width={34}
-                  axisLine={false}
-                  tickLine={false}
-                  tickMargin={4}
-                />
-                <Tooltip
-                  contentStyle={{ borderRadius: 16, border: "1px solid var(--chart-tip-border)", background: "var(--chart-tip-bg)", color: "var(--chart-ink)", fontSize: 12 }}
-                  labelFormatter={(l) => `Attempt ${l}`}
-                  formatter={(v: number) => [`${v}%`, "Score"]}
-                />
-                <Area type="monotone" dataKey="pct" stroke="var(--chart-ink)" strokeWidth={2} fill="url(#perf)" />
-              </AreaChart>
-            </ResponsiveContainer>
-          )}
-        </div>
       </Card>
     </div>
   );

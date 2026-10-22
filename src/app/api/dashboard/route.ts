@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   const today = todayISO();
-  const [profile, subjects, tasks, habits, habitLogs, plans, sessions, attempts, revisionCards, chapters, leads, englishSessions, mistakes] =
+  const [profile, subjects, tasks, habits, habitLogs, plans, sessions, revisionCards, chapters, leads, englishSessions, mistakes] =
     await Promise.all([
       db.profile.findUnique({ where: { id: "default" } }),
       db.subject.findMany({ include: { chapters: true }, orderBy: { order: "asc" } }),
@@ -16,12 +16,6 @@ export async function GET() {
       db.habitLog.findMany({ where: { date: today } }),
       db.studyPlan.findFirst({ where: { date: today } }),
       db.studySession.findMany({ where: { date: today } }),
-      db.examAttempt.findMany({
-        where: { status: { in: ["SUBMITTED", "EVALUATED"] } },
-        orderBy: { submittedAt: "desc" },
-        include: { paper: { select: { title: true, totalMarks: true, mode: true, subject: { select: { name: true } } } } },
-        take: 8,
-      }),
       db.revisionCard.findMany({ where: { nextReviewAt: { lte: today } } }),
       db.chapter.findMany({ include: { subject: { select: { name: true } } } }),
       db.freelanceLead.findMany(),
@@ -71,7 +65,6 @@ export async function GET() {
     const mastered = s.chapters.filter((c) => c.status === "MASTERED").length;
     const studied = s.chapters.filter((c) => ["STUDIED", "REVISION_REQUIRED", "TEST_PENDING", "MASTERED"].includes(c.status)).length;
     const avgCompletion = total ? Math.round(s.chapters.reduce((a, c) => a + c.completion, 0) / total) : 0;
-    const scores = s.chapters.filter((c) => c.lastTestScore != null).map((c) => c.lastTestScore as number);
     return {
       id: s.id,
       name: s.name,
@@ -79,7 +72,6 @@ export async function GET() {
       mastered,
       studied,
       avgCompletion,
-      avgScore: scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null,
     };
   });
 
@@ -90,25 +82,22 @@ export async function GET() {
   let recommendation: string;
   const topWeak = [...chapters]
     .filter((c) => c.status !== "MASTERED")
-    .sort((a, b) => {
-      const score = (c: typeof a) => (c.lastTestScore ?? -1) + c.confidence * 10 - (c.status === "NOT_STARTED" ? 20 : 0);
-      return score(a) - score(b);
-    })
+    .sort((a, b) => a.confidence - b.confidence || a.completion - b.completion)
     .slice(0, 3);
 
   const parts: string[] = [];
   if (mistakesDue.length) parts.push(`Review ${mistakesDue.length} mistake(s) due in your notebook — retention decays fast without spaced review.`);
-  if (topWeak.length) parts.push(`Your highest-impact study block today is "${topWeak[0].name}" (${topWeak[0].subject.name}) — confidence ${topWeak[0].confidence}/5${topWeak[0].lastTestScore != null ? `, last test ${Math.round(topWeak[0].lastTestScore)}%` : ", not yet tested"}.`);
+  if (topWeak.length) parts.push(`Your highest-impact study block today is "${topWeak[0].name}" (${topWeak[0].subject.name}) — confidence ${topWeak[0].confidence}/5, ${topWeak[0].completion}% covered.`);
   if (leadsDue.length) parts.push(`${leadsDue.length} freelance follow-up(s) are due — deals die quietly when follow-up slips.`);
   if (!parts.length && pendingToday.length) parts.push(`Clear "${pendingToday[0].title}" first — it is the top open task on your list.`);
-  if (!parts.length) recommendation = "Nothing is overdue and your revision queue is clear. Use this margin to generate a mock test on your strongest chapter to lock it in.";
+  if (!parts.length) recommendation = "Nothing is overdue and your revision queue is clear. Use this margin to go deeper on a chapter you already marked as studied.";
   else recommendation = parts.join(" ");
 
   const todaysObjective = topWeak[0]
     ? `Push "${topWeak[0].name}" toward mastered`
     : pendingToday[0]
       ? `Complete "${pendingToday[0].title}"`
-      : "Maintain streaks and generate a mock test";
+      : "Maintain streaks and deepen what you have studied";
 
   const upcoming = [
     ...tasks.filter((t) => t.dueAt && t.dueAt.slice(0, 10) > today && t.status !== "DONE").map((t) => ({ kind: "Task", title: t.title, date: t.dueAt!.slice(0, 10) })),
@@ -117,25 +106,6 @@ export async function GET() {
   ]
     .sort((a, b) => a.date.localeCompare(b.date))
     .slice(0, 8);
-
-  const recentScores = attempts.slice(0, 6).map((a) => ({
-    title: a.paper.title,
-    subject: a.paper.subject?.name ?? "",
-    score: a.score ?? 0,
-    max: a.maxScore,
-    pct: a.maxScore ? pct(a.score ?? 0, a.maxScore) : 0,
-    date: a.submittedAt?.toISOString() ?? a.createdAt.toISOString(),
-  }));
-
-  // Performance trail for the dashboard graph (chronological, last 12 attempts)
-  const performance = [...attempts]
-    .reverse()
-    .map((a, i) => ({
-      idx: i + 1,
-      pct: a.maxScore ? pct(a.score ?? 0, a.maxScore) : 0,
-      subject: a.paper.subject?.name ?? "",
-      date: (a.submittedAt?.toISOString() ?? a.createdAt.toISOString()).slice(0, 10),
-    }));
 
   // Weekly chapter targets: master one Physics + one Chemistry chapter per week.
   const weekStart = dateOffsetISO(-new Date(`${today}T00:00:00`).getDay());
@@ -163,7 +133,7 @@ export async function GET() {
   const tools: Array<{ title: string; reason: string; href: string }> = [];
   if (mistakesDue.length) tools.push({ title: "Mistake Notebook", reason: `${mistakesDue.length} mistake(s) due for spaced review.`, href: "/mistakes" });
   if (revisionDueChapters.length) tools.push({ title: "Revision Center", reason: `${revisionDueChapters.length} chapter(s) ready to resurface.`, href: "/revision" });
-  if (topWeak.length) tools.push({ title: "AI Exam Studio", reason: `Test "${topWeak[0].name}" to lock it in — confidence ${topWeak[0].confidence}/5.`, href: "/exam-studio" });
+  if (topWeak.length) tools.push({ title: "Study Planner", reason: `Turn "${topWeak[0].name}" into a scheduled study block.`, href: "/planner" });
   if (weeklyTargets.some((t) => t.name)) tools.push({ title: "Study Planner", reason: "Turn this week's chapter targets into daily blocks.", href: "/planner" });
   tools.push({ title: "English Lab", reason: data_englishReason(englishStreak, englishSessions), href: "/english" });
   if (leadsDue.length) tools.push({ title: "Freelance CRM", reason: `${leadsDue.length} follow-up(s) due.`, href: "/freelance" });
@@ -188,8 +158,7 @@ export async function GET() {
     overdueTasks: overdueTasks.slice(0, 8).map((t) => ({ id: t.id, title: t.title, dueAt: t.dueAt?.slice(0, 10), priority: t.priority })),
     subjectProgress,
     overall: { chapters: overallChapters, mastered: overallMastered, completion: pct(overallMastered, overallChapters) },
-    recentScores,
-    weakChapters: topWeak.map((c) => ({ id: c.id, name: c.name, subject: c.subject.name, confidence: c.confidence, lastTestScore: c.lastTestScore })),
+    weakChapters: topWeak.map((c) => ({ id: c.id, name: c.name, subject: c.subject.name, confidence: c.confidence })),
     revisionDue: [
       ...revisionDueChapters.slice(0, 5).map((c) => ({ id: c.id, title: c.name, kind: "chapter" })),
       ...mistakesDue.slice(0, 5).map((m) => ({ id: m.id, title: m.question.slice(0, 80), kind: "mistake" })),
@@ -205,7 +174,6 @@ export async function GET() {
       weekDone: h.logs.filter((l) => l.done && l.date >= dateOffsetISO(-6)).length,
     })),
     upcoming,
-    performance,
     weeklyTargets: { weekStart, weekEnd, targets: weeklyTargets },
     tools: tools.slice(0, 5),
   });

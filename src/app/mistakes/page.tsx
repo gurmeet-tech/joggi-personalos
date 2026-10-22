@@ -88,7 +88,7 @@ export default function MistakesPage() {
         <div>
           <p className="label-cap">Error analysis</p>
           <h1 className="mt-xs text-h2 text-ink">Mistake notebook.</h1>
-          <p className="mt-sm text-body text-muted">Every wrong answer from your exams, with the correct reasoning and a spaced revision date.</p>
+          <p className="mt-sm text-body text-muted">Every wrong answer you log, with the correct reasoning and a spaced revision date.</p>
         </div>
         <Button onClick={() => setShowAdd(true)}>
           <Plus size={16} /> Add mistake
@@ -111,7 +111,7 @@ export default function MistakesPage() {
       {!data?.length && (
         <EmptyState
           title={filter === "due" ? "Nothing due for review" : "No mistakes logged"}
-          description="Mistakes are captured automatically when you submit exams, or you can add them manually."
+          description="Log a mistake whenever you get something wrong — it gets scheduled for spaced review automatically."
           action={<Button onClick={() => setShowAdd(true)}>Add a mistake</Button>}
         />
       )}

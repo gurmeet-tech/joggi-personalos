@@ -108,7 +108,7 @@ const DELUSIONAL_QUOTES = [
   "Discipline is just self-respect in action. Respect yourself today.",
   "You've survived worse weeks than this. This one's easy.",
   "Your future self is begging for the version of today you're about to build.",
-  "Every mock test is a rehearsal for the day you win.",
+  "Every page you recall today is one less thing you forget by exam day.",
   "Delusion check: you ARE that guy. Now go act like it.",
 ];
 
@@ -148,45 +148,4 @@ export function toHm(seconds: number): string {
   const m = Math.floor((seconds % 3600) / 60);
   const s = Math.floor(seconds % 60);
   return [h, m, s].map((n) => String(n).padStart(2, "0")).join(":");
-}
-
-export function youtubeIdFromUrl(url: string): string | null {
-  if (!url) return null;
-  const trimmed = url.trim();
-  const patterns = [
-    /(?:youtube\.com\/watch\?v=)([\w-]{11})/,
-    /(?:youtu\.be\/)([\w-]{11})/,
-    /(?:youtube\.com\/embed\/)([\w-]{11})/,
-    /(?:youtube\.com\/shorts\/)([\w-]{11})/,
-    /^([\w-]{11})$/,
-  ];
-  for (const p of patterns) {
-    const m = trimmed.match(p);
-    if (m) return m[1];
-  }
-  return null;
-}
-
-export function isDirectMediaUrl(url: string): boolean {
-  return /\.(mp4|webm|ogg|mp3|wav|m4a)(\?.*)?$/i.test(url.trim());
-}
-
-export function isValidVideoUrl(url: string): { ok: boolean; kind?: "youtube" | "file"; id?: string; error?: string } {
-  const trimmed = (url || "").trim();
-  if (!trimmed) return { ok: false, error: "Enter a video URL." };
-  const yt = youtubeIdFromUrl(trimmed);
-  if (yt) return { ok: true, kind: "youtube", id: yt };
-  if (isDirectMediaUrl(trimmed)) {
-    try {
-      const u = new URL(trimmed);
-      if (u.protocol === "http:" || u.protocol === "https:") return { ok: true, kind: "file" };
-    } catch {
-      /* fallthrough */
-    }
-    return { ok: false, error: "Direct media URL must be a valid http(s) link." };
-  }
-  return {
-    ok: false,
-    error: "Unsupported link. Use a YouTube link (youtube.com/watch, youtu.be) or a direct .mp4/.webm/.mp3 file URL.",
-  };
 }

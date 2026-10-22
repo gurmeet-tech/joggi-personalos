@@ -6,7 +6,7 @@ import AppShell from "@/components/layout/shell";
 
 export const metadata: Metadata = {
   title: "MY OS — Personal Operating System",
-  description: "Class 12 board exam simulator, AI study planner, English lab, freelance CRM and self-improvement — one intelligent system.",
+  description: "AI study planner, revision centre, English lab, freelance CRM and self-improvement — one intelligent system.",
 };
 
 export const viewport: Viewport = {

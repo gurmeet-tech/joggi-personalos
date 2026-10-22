@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutGrid,
-  FlaskConical,
   CalendarRange,
   RotateCcw,
   NotebookPen,
@@ -43,7 +42,6 @@ const NAV_GROUPS: Array<{ label: string; items: Array<{ href: string; label: str
   {
     label: "Study",
     items: [
-      { href: "/exam-studio", label: "AI Exam Studio", icon: FlaskConical },
       { href: "/planner", label: "Study planner", icon: CalendarRange },
       { href: "/revision", label: "Revision center", icon: RotateCcw },
       { href: "/mistakes", label: "Mistake notebook", icon: NotebookPen },
@@ -107,7 +105,6 @@ function QuickAdd({ onClose }: { onClose: () => void }) {
   const items = [
     { label: "Task", href: "/tasks?new=1" },
     { label: "Study session", href: "/planner?new=1" },
-    { label: "Exam paper", href: "/exam-studio" },
     { label: "Goal", href: "/habits?new=goal" },
     { label: "Freelance lead", href: "/freelance?new=1" },
     { label: "Mistake", href: "/mistakes?new=1" },
@@ -151,7 +148,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [dueCount, setDueCount] = useState(0);
   const [todo, setTodo] = useState<Array<{ kind: string; label: string; href: string; taskId?: string }>>([]);
   const router = useRouter();
-  const isExam = pathname.startsWith("/exam/active");
   const isAssistant = pathname.startsWith("/assistant");
 
   // The assistant is a focused workspace: keep the main sidebar out of the way until asked for.
@@ -209,8 +205,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => setMobileOpen(false), [pathname]);
-
-  if (isExam) return <>{children}</>;
 
   const now = new Date();
   const dateLabel = now.toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" });

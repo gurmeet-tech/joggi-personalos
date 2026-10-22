@@ -4,13 +4,11 @@ import { db } from "@/lib/db";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const [profile, subjects, chapters, papers, attempts, tasks, habits, goals, mistakes, cards, english, leads, journal, plans, sessions] =
+  const [profile, subjects, chapters, tasks, habits, goals, mistakes, cards, english, leads, journal, plans, sessions] =
     await Promise.all([
       db.profile.findUnique({ where: { id: "default" } }),
       db.subject.findMany({ include: { chapters: { include: { topics: true } } } }),
       db.chapter.count(),
-      db.examPaper.count(),
-      db.examAttempt.findMany({ include: { paper: { select: { title: true } } } }),
       db.task.findMany(),
       db.habit.findMany({ include: { logs: true } }),
       db.goal.findMany(),
@@ -28,8 +26,7 @@ export async function GET() {
     app: "MY OS",
     profile,
     subjects,
-    counts: { chapters, papers, attempts: attempts.length, tasks: tasks.length, habits: habits.length, goals: goals.length, mistakes: mistakes.length, englishSessions: english.length, leads: leads.length, journalEntries: journal.length },
-    attempts,
+    counts: { chapters, tasks: tasks.length, habits: habits.length, goals: goals.length, mistakes: mistakes.length, englishSessions: english.length, leads: leads.length, journalEntries: journal.length },
     tasks,
     habits,
     goals,

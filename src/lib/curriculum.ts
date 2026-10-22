@@ -1,6 +1,6 @@
-// CBSE Class 12 curriculum knowledge base used by the offline DEMO paper engine.
-// Chapter/topic lists mirror the standard CBSE Class 12 syllabus. Demo questions are
-// procedurally generated from these topics — never a fixed set of sample questions.
+// CBSE Class 12 curriculum knowledge base.
+// Chapter/topic lists mirror the standard CBSE Class 12 syllabus and are used to
+// seed subjects with the right chapters and topics.
 
 export interface CurriculumChapter {
   name: string;
@@ -10,15 +10,11 @@ export interface CurriculumChapter {
 export interface CurriculumSubject {
   name: string;
   chapters: CurriculumChapter[];
-  defaultTypes: string[];
-  hasNumericals: boolean;
 }
 
 export const CURRICULUM: Record<string, CurriculumSubject> = {
   Physics: {
     name: "Physics",
-    hasNumericals: true,
-    defaultTypes: ["MCQ", "ASSERTION_REASON", "SHORT", "NUMERICAL", "LONG"],
     chapters: [
       { name: "Electric Charges and Fields", topics: ["Coulomb's law", "Electric field of a point charge", "Electric dipole", "Gauss's law", "Electric flux", "Field due to a uniformly charged ring", "Properties of electric field lines"] },
       { name: "Electrostatic Potential and Capacitance", topics: ["Electric potential", "Potential due to a dipole", "Equipotential surfaces", "Capacitance", "Parallel plate capacitor", "Dielectrics and polarisation", "Energy stored in a capacitor", "Combination of capacitors"] },
@@ -38,8 +34,6 @@ export const CURRICULUM: Record<string, CurriculumSubject> = {
   },
   Chemistry: {
     name: "Chemistry",
-    hasNumericals: true,
-    defaultTypes: ["MCQ", "ASSERTION_REASON", "SHORT", "LONG", "MATCHING"],
     chapters: [
       { name: "Solutions", topics: ["Raoult's law", "Vapour pressure", "Ideal and non-ideal solutions", "Azeotropes", "Henry's law", "Colligative properties", "Relative lowering of vapour pressure", "Osmosis and osmotic pressure", "Abnormal molar mass"] },
       { name: "Electrochemistry", topics: ["Galvanic cells", "Nernst equation", "Conductance", "Electrolytic cells", "Faraday's laws of electrolysis", "Batteries", "Corrosion", "Fuel cells", "Molar conductivity"] },
@@ -55,8 +49,6 @@ export const CURRICULUM: Record<string, CurriculumSubject> = {
   },
   Mathematics: {
     name: "Mathematics",
-    hasNumericals: true,
-    defaultTypes: ["MCQ", "SHORT", "LONG", "NUMERICAL", "DERIVATION"],
     chapters: [
       { name: "Relations and Functions", topics: ["Types of relations", "Types of functions", "Composition of functions", "Invertible functions", "Binary operations", "Equivalence relations"] },
       { name: "Inverse Trigonometric Functions", topics: ["Definition and domain", "Range", "Principal value branch", "Properties of inverse trigonometric functions", "Compositions"] },
@@ -75,8 +67,6 @@ export const CURRICULUM: Record<string, CurriculumSubject> = {
   },
   Biology: {
     name: "Biology",
-    hasNumericals: false,
-    defaultTypes: ["MCQ", "ASSERTION_REASON", "SHORT", "LONG", "MATCHING"],
     chapters: [
       { name: "Sexual Reproduction in Flowering Plants", topics: ["Pre-fertilisation events", "Flower structure", "Pollination", "Outbreeding devices", "Pollen-pistil interaction", "Double fertilisation", "Post-fertilisation events", "Apomixis and polyembryony"] },
       { name: "Human Reproduction", topics: ["Male reproductive system", "Female reproductive system", "Gametogenesis", "Menstrual cycle", "Fertilisation and implantation", "Embryo development", "Parturition", "Lactation"] },
@@ -95,8 +85,6 @@ export const CURRICULUM: Record<string, CurriculumSubject> = {
   },
   "English Core": {
     name: "English Core",
-    hasNumericals: false,
-    defaultTypes: ["MCQ", "SHORT", "LONG", "CASE"],
     chapters: [
       { name: "The Last Lesson", topics: ["Alphonse Daudet", "Franco-Prussian war context", "Characterisation of Franz", "Theme of linguistic chauvinism", "Key incidents", "Narrative voice"] },
       { name: "Lost Spring", topics: ["Anees Jung", "Child labour", "Sweeping and bangle making", "Firozabad", "Themes of poverty and exploitation", "Author's tone"] },
@@ -112,8 +100,6 @@ export const CURRICULUM: Record<string, CurriculumSubject> = {
   },
   Accountancy: {
     name: "Accountancy",
-    hasNumericals: true,
-    defaultTypes: ["MCQ", "SHORT", "LONG", "NUMERICAL"],
     chapters: [
       { name: "Accounting for Not-for-Profit Organisations", topics: ["Receipt and payment account", "Income and expenditure account", "Balance sheet", "Subscription accounting", "Special funds"] },
       { name: "Accounting for Partnership: Basic Concepts", topics: ["Partnership deed", "Profit and loss appropriation", "Capital and current accounts", "Interest on capital", "Guarantee of profit"] },
@@ -128,8 +114,6 @@ export const CURRICULUM: Record<string, CurriculumSubject> = {
   },
   "Business Studies": {
     name: "Business Studies",
-    hasNumericals: false,
-    defaultTypes: ["MCQ", "SHORT", "LONG", "CASE"],
     chapters: [
       { name: "Nature and Significance of Management", topics: ["Management definition", "Objectives of management", "Levels of management", "Management as an art, science and profession", "Coordination"] },
       { name: "Principles of Management", topics: ["Fayol's principles", "Taylor's scientific management", "Difference between the two", "Applicability of principles"] },
@@ -145,8 +129,6 @@ export const CURRICULUM: Record<string, CurriculumSubject> = {
   },
   Economics: {
     name: "Economics",
-    hasNumericals: true,
-    defaultTypes: ["MCQ", "SHORT", "LONG", "NUMERICAL", "CASE"],
     chapters: [
       { name: "National Income and Related Aggregates", topics: ["GDP and GNP", "National income methods", "Value added method", "Income method", "Expenditure method", "Real and nominal GDP", "Limitations of national income estimates"] },
       { name: "Money and Banking", topics: ["Money functions", "Money supply", "Commercial banks", "Central bank functions", "Credit creation", "Monetary policy instruments"] },
@@ -164,8 +146,6 @@ export const CURRICULUM: Record<string, CurriculumSubject> = {
   },
   "Computer Science": {
     name: "Computer Science",
-    hasNumericals: true,
-    defaultTypes: ["MCQ", "SHORT", "LONG", "NUMERICAL", "CASE"],
     chapters: [
       { name: "Functions", topics: ["User-defined functions", "Default arguments", "Inline functions", "Function overloading", "Recursion", "Passing parameters"] },
       { name: "Classes and Objects", topics: ["Class definition", "Data members and member functions", "Constructors", "Destructors", "Friend functions", "Static members", "Object lifetime"] },
@@ -178,30 +158,3 @@ export const CURRICULUM: Record<string, CurriculumSubject> = {
 };
 
 export const SUBJECT_NAMES = Object.keys(CURRICULUM);
-
-export function findSubject(name: string): CurriculumSubject | null {
-  if (!name) return null;
-  const key = Object.keys(CURRICULUM).find(
-    (k) => k.toLowerCase() === name.trim().toLowerCase()
-  );
-  return key ? CURRICULUM[key] : null;
-}
-
-export function findChapter(subject: CurriculumSubject, chapterName: string): CurriculumChapter | null {
-  if (!chapterName) return null;
-  const needle = chapterName.trim().toLowerCase();
-  return (
-    subject.chapters.find((c) => c.name.toLowerCase() === needle) ??
-    subject.chapters.find((c) => c.name.toLowerCase().includes(needle) || needle.includes(c.name.toLowerCase())) ??
-    null
-  );
-}
-
-export function suggestChapters(subjectName: string, query: string): string[] {
-  const subject = findSubject(subjectName);
-  if (!subject || !query.trim()) return subject?.chapters.map((c) => c.name).slice(0, 8) ?? [];
-  const q = query.trim().toLowerCase();
-  return subject.chapters
-    .filter((c) => c.name.toLowerCase().includes(q))
-    .map((c) => c.name);
-}

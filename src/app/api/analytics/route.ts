@@ -8,14 +8,9 @@ export async function GET(req: NextRequest) {
   const from = req.nextUrl.searchParams.get("from") || dateOffsetISO(-29);
   const to = req.nextUrl.searchParams.get("to") || todayISO();
 
-  const [subjects, chapters, attempts, sessions, habits, habitLogs, tasks, leads, english, mistakes, plans] = await Promise.all([
+  const [subjects, chapters, sessions, habits, habitLogs, tasks, leads, english, mistakes, plans] = await Promise.all([
     db.subject.findMany({ include: { chapters: true } }),
     db.chapter.findMany({ include: { subject: { select: { name: true } } } }),
-    db.examAttempt.findMany({
-      where: { status: { in: ["SUBMITTED", "EVALUATED"] }, submittedAt: { gte: new Date(from), lte: new Date(to + "T23:59:59") } },
-      include: { paper: { select: { title: true, totalMarks: true, mode: true, subject: { select: { name: true } } } } },
-      orderBy: { submittedAt: "asc" },
-    }),
     db.studySession.findMany({ where: { date: { gte: from, lte: to } }, include: { chapter: { include: { subject: { select: { name: true } } } } } }),
     db.habit.findMany({ include: { logs: { where: { date: { gte: from, lte: to } } } } }),
     db.habitLog.findMany({ where: { date: { gte: from, lte: to } } }),
@@ -40,12 +35,6 @@ export async function GET(req: NextRequest) {
     minutes: sessions.filter((x) => x.chapter?.subject?.name === s.name || x.subjectId === s.id).reduce((a, x) => a + (x.actualMinutes ?? 0), 0),
   }));
 
-  const scoreBySubject = subjects.map((s) => {
-    const rel = attempts.filter((a) => a.paper.subject?.name === s.name);
-    const avg = rel.length ? Math.round(rel.reduce((a, x) => a + (x.maxScore ? ((x.score ?? 0) / x.maxScore) * 100 : 0), 0) / rel.length) : null;
-    return { subject: s.name, avgScore: avg, attempts: rel.length };
-  });
-
   const chapterMastery = subjects.map((s) => ({
     subject: s.name,
     notStarted: s.chapters.filter((c) => c.status === "NOT_STARTED").length,
@@ -53,18 +42,6 @@ export async function GET(req: NextRequest) {
     revision: s.chapters.filter((c) => c.status === "REVISION_REQUIRED" || c.status === "TEST_PENDING").length,
     mastered: s.chapters.filter((c) => c.status === "MASTERED").length,
   }));
-
-  const objectiveStats = attempts.reduce(
-    (acc, a) => {
-      const ev = parseJSON<{ objectiveScore?: number; objectiveMax?: number } | null>(a.evaluation, null);
-      if (ev?.objectiveMax) {
-        acc.score += ev.objectiveScore ?? 0;
-        acc.max += ev.objectiveMax;
-      }
-      return acc;
-    },
-    { score: 0, max: 0 }
-  );
 
   const englishTrend = english.map((s) => {
     const m = parseJSON<{ wpm?: number; fillerCount?: number; wordCount?: number }>(s.metrics, {});
@@ -99,18 +76,7 @@ export async function GET(req: NextRequest) {
     range: { from, to },
     studyByDay,
     studyBySubject: studyBySubject.filter((s) => s.minutes > 0),
-    scoreBySubject,
     chapterMastery,
-    mockHistory: attempts.map((a) => ({
-      title: a.paper.title,
-      subject: a.paper.subject?.name ?? "",
-      pct: a.maxScore ? Math.round(((a.score ?? 0) / a.maxScore) * 100) : 0,
-      score: a.score ?? 0,
-      max: a.maxScore,
-      date: a.submittedAt?.toISOString().slice(0, 10) ?? a.createdAt.toISOString().slice(0, 10),
-      mode: a.paper.mode,
-    })),
-    objectiveAccuracy: objectiveStats.max ? Math.round((objectiveStats.score / objectiveStats.max) * 100) : null,
     revisionDueNow: chapters.filter((c) => c.status === "REVISION_REQUIRED" || (c.nextRevisionAt && c.nextRevisionAt <= new Date())).length,
     englishTrend,
     englishMinutes: english.reduce((s, x) => s + Math.round(x.durationSec / 60), 0),

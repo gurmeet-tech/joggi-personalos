@@ -2,9 +2,8 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useApi, Card, Button, Field, Input, Select, Checkbox, Spinner, ErrorState, Badge, useToast } from "@/components/ui";
-import { isValidVideoUrl } from "@/lib/utils";
-import { Save, Download, RotateCcw, KeyRound, Volume2, ShieldCheck } from "lucide-react";
+import { useApi, Card, Button, Field, Input, Select, Spinner, ErrorState, Badge, useToast } from "@/components/ui";
+import { Save, Download, RotateCcw, KeyRound } from "lucide-react";
 
 interface Profile {
   name: string;
@@ -14,10 +13,6 @@ interface Profile {
   targetMarks: number | null;
   dailyStudyHours: number;
   englishAccent: string;
-  ambienceVideoUrl: string;
-  ambienceVolume: number;
-  strictMode: boolean;
-  defaultDurationMin: number;
   schoolSchedule: string | null;
   examDates: string | null;
   onboarded: boolean;
@@ -57,16 +52,13 @@ export default function SettingsPage() {
   if (loading || !form) return <Spinner label="Loading settings…" />;
   if (error) return <ErrorState message={error} onRetry={reload} />;
 
-  const videoCheck = form.ambienceVideoUrl ? isValidVideoUrl(form.ambienceVideoUrl) : { ok: true };
-  const videoOk = videoCheck.ok;
-
   return (
     <div className="max-w-3xl">
       <div className="mb-lg flex flex-wrap items-end justify-between gap-md">
         <div>
           <p className="label-cap">System</p>
           <h1 className="mt-xs text-h2 text-ink">Settings.</h1>
-          <p className="mt-sm text-body text-muted">Profile, exam defaults, ambience and your data. Everything is stored locally on this machine.</p>
+          <p className="mt-sm text-body text-muted">Profile, study defaults and your data. Everything is stored locally on this machine.</p>
         </div>
         <Button onClick={save} disabled={saving}>
           <Save size={16} /> {saving ? "Saving…" : "Save changes"}
@@ -112,34 +104,6 @@ export default function SettingsPage() {
       </Card>
 
       <Card className="mt-lg">
-        <h3 className="flex items-center gap-xs text-title text-ink">
-          <ShieldCheck size={16} /> Exam simulator defaults
-        </h3>
-        <div className="mt-md grid gap-md sm:grid-cols-2">
-          <Field label="Default duration (minutes)">
-            <Input type="number" min={5} max={360} value={form.defaultDurationMin} onChange={(e) => setForm({ ...form, defaultDurationMin: Number(e.target.value) })} />
-          </Field>
-          <div className="flex items-end">
-            <Checkbox label="Strict invigilator mode by default (hides answers, enforces the clock)" checked={form.strictMode} onChange={(e) => setForm({ ...form, strictMode: e.target.checked })} />
-          </div>
-        </div>
-      </Card>
-
-      <Card className="mt-lg">
-        <h3 className="flex items-center gap-xs text-title text-ink">
-          <Volume2 size={16} /> Exam ambience
-        </h3>
-        <p className="mt-xs text-body-sm text-muted">A YouTube ambience track plays audio-only during exams. If the browser blocks autoplay, you will get an honest “Enable exam audio” button.</p>
-        <Field label="Ambience video URL" className="mt-md" hint={videoOk ? "Looks valid." : videoCheck.error}>
-          <Input value={form.ambienceVideoUrl} onChange={(e) => setForm({ ...form, ambienceVideoUrl: e.target.value })} placeholder="https://youtu.be/CYcn9O8hkz8" />
-        </Field>
-        {!videoOk && <p className="mt-xs text-caption text-ink">{videoCheck.error}</p>}
-        <Field label={`Default volume — ${Math.round(form.ambienceVolume * 100)}%`} className="mt-md">
-          <input type="range" min={0} max={1} step={0.05} value={form.ambienceVolume} onChange={(e) => setForm({ ...form, ambienceVolume: Number(e.target.value) })} className="w-full accent-ink" />
-        </Field>
-      </Card>
-
-      <Card className="mt-lg">
         <h3 className="text-title text-ink">AI engine</h3>
         <p className="mt-sm text-body-sm text-muted">
           The app runs fully offline in a clearly-labelled <span className="text-ink">Demo</span> mode. Add{" "}
@@ -167,7 +131,7 @@ export default function SettingsPage() {
       </Card>
 
       <div className="mt-lg flex justify-end">
-        <Button onClick={save} disabled={saving || !videoOk}>
+        <Button onClick={save} disabled={saving}>
           <Save size={16} /> {saving ? "Saving…" : "Save changes"}
         </Button>
       </div>

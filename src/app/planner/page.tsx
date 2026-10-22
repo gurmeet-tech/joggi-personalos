@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import { useApi, Card, Button, Field, Input, Select, Badge, Spinner, ErrorState, Progress, useToast, Segmented, Modal } from "@/components/ui";
 import { minutesToHm, relativeDay, todayISO, notifyChaptersChanged } from "@/lib/utils";
 import { Sparkles, Check, X, Clock, CalendarDays, Plus } from "lucide-react";
-import MonthEndTest from "@/components/month-end-test";
 
 interface PlanItem {
   id: string;
@@ -120,7 +119,7 @@ export default function PlannerPage() {
         <div>
           <p className="label-cap">Study planning</p>
           <h1 className="mt-xs text-h2 text-ink">Study planner.</h1>
-          <p className="mt-sm text-body text-muted">Plans are built from your syllabus gaps, confidence ratings and recent test scores — not generic advice.</p>
+          <p className="mt-sm text-body text-muted">Plans are built from your syllabus gaps, confidence ratings and revision schedule — not generic advice.</p>
         </div>
         <div className="flex gap-xs">
           <Button variant="outline" onClick={() => setShowLog(true)}>
@@ -154,14 +153,12 @@ export default function PlannerPage() {
       </div>
 
       <div className="mt-md">
-        <MonthEndTest />
+        {!data?.plans.length && (
+          <Card soft>
+            <p className="text-body text-ink">No plan yet. Click “Generate plan” — the engine will schedule learning, practice, spaced revision and a weekly recall check, then adjust as you complete or miss sessions.</p>
+          </Card>
+        )}
       </div>
-
-      {!data?.plans.length && (
-        <Card soft className="mt-md">
-          <p className="text-body text-ink">No plan yet. Click “Generate plan” — the engine will schedule learning, practice, spaced revision and a weekly mock, then adjust as you complete or miss sessions.</p>
-        </Card>
-      )}
 
       <div className="mt-md flex flex-col gap-md">
         {(view === "today" ? (data?.plans ?? []).filter((p) => p.date === today) : data?.plans ?? []).map((plan) => {
@@ -181,7 +178,7 @@ export default function PlannerPage() {
               <div className="mt-sm flex flex-col gap-xs">
                 {plan.items.map((item) => (
                   <div key={item.id} className={`flex flex-wrap items-center gap-sm rounded-sm px-sm py-xs ${item.completed ? "bg-canvas-soft opacity-60" : item.skipped ? "bg-canvas-soft opacity-50" : "bg-canvas-soft"}`}>
-                    <Badge tone={item.type === "MOCK" ? "ink" : "neutral"}>{item.type}</Badge>
+                    <Badge tone="neutral">{item.type}</Badge>
                     <div className="min-w-0 flex-1">
                       <p className={`text-body-sm ${item.completed ? "line-through" : ""} text-ink`}>{item.title}</p>
                       <p className="text-caption text-muted">{item.reason}</p>
